@@ -70,8 +70,10 @@ export type Database = {
           id: string
           identity: Json
           phone: string | null
+          phone_verified: boolean | null
           profile_version: number
           sharing_allowlist: Json
+          stripe_customer_id: string | null
           subscription_tier: string
           trial_started_at: string | null
           updated_at: string
@@ -86,8 +88,10 @@ export type Database = {
           id?: string
           identity?: Json
           phone?: string | null
+          phone_verified?: boolean | null
           profile_version?: number
           sharing_allowlist?: Json
+          stripe_customer_id?: string | null
           subscription_tier?: string
           trial_started_at?: string | null
           updated_at?: string
@@ -102,8 +106,10 @@ export type Database = {
           id?: string
           identity?: Json
           phone?: string | null
+          phone_verified?: boolean | null
           profile_version?: number
           sharing_allowlist?: Json
+          stripe_customer_id?: string | null
           subscription_tier?: string
           trial_started_at?: string | null
           updated_at?: string
@@ -165,6 +171,14 @@ export type Database = {
           used_tokens: number
           week_start_date: string
           weekly_budget: number
+        }[]
+      }
+      check_trial_expiry: {
+        Args: { p_user_id: string }
+        Returns: {
+          is_expired: boolean
+          tier: string
+          trial_ends_at: string
         }[]
       }
       get_weekly_budget: { Args: { tier: string }; Returns: number }

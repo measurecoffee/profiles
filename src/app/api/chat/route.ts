@@ -34,6 +34,17 @@ export async function POST(request: NextRequest) {
       .single()
 
     const tier = profile?.subscription_tier || 'trial'
+    const tierConfig = getTier(tier)
+
+    // Block expired trials
+    if (!tierConfig.canChat) {
+      return NextResponse.json({
+        error: 'Trial expired',
+        tier,
+        upgrade_message: 'Your free trial has expired. Upgrade to continue chatting.',
+        upgrade_url: '/account/profile',
+      }, { status: 403 })
+    }
 
     // Check token budget
     const { data: budgetInfo } = await supabase
@@ -47,6 +58,7 @@ export async function POST(request: NextRequest) {
         remaining_tokens: 0,
         weekly_budget: budget.weekly_budget,
         upgrade_message: `You've used your weekly token budget. Upgrade to ${tier === 'trial' ? 'Barista ($5/mo)' : 'a higher tier'} for more.`,
+        upgrade_url: '/account/profile',
       }, { status: 429 })
     }
 

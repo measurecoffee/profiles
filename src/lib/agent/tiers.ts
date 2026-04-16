@@ -1,14 +1,15 @@
 // Tier configuration — weekly token budgets and model assignments
 
-export type SubscriptionTier = 'trial' | 'tier1' | 'tier2'
+export type SubscriptionTier = 'trial' | 'expired_trial' | 'tier1' | 'tier2'
 
-export interface TierConfig {
+interface TierConfig {
   name: string
-  price: number           // monthly price in USD
+  price: number           // monthly price in USD (0 for trial)
   model: string           // OpenRouter model ID
   weeklyTokenBudget: number
   maxContextTokens: number // max tokens per request
   features: string[]
+  canChat: boolean         // whether the tier allows chat access
 }
 
 export const TIERS: Record<SubscriptionTier, TierConfig> = {
@@ -19,6 +20,16 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     weeklyTokenBudget: 15_000,
     maxContextTokens: 4_096,
     features: ['1 week free', 'Basic coffee Q&A', 'Equipment lookup'],
+    canChat: true,
+  },
+  expired_trial: {
+    name: 'Trial Expired',
+    price: 0,
+    model: 'google/gemma-4-26b-a4b-it',
+    weeklyTokenBudget: 0,
+    maxContextTokens: 0,
+    features: [],
+    canChat: false,
   },
   tier1: {
     name: 'Barista',
@@ -27,6 +38,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     weeklyTokenBudget: 150_000,
     maxContextTokens: 8_192,
     features: ['Unlimited sessions', 'Equipment guidance', 'Maintenance schedules', 'Profile memory'],
+    canChat: true,
   },
   tier2: {
     name: 'Roaster',
@@ -35,6 +47,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     weeklyTokenBudget: 500_000,
     maxContextTokens: 16_384,
     features: ['Everything in Barista', 'Advanced diagnostics', 'Business operations', 'Priority model', 'Extended context'],
+    canChat: true,
   },
 }
 

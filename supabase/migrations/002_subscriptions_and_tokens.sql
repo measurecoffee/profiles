@@ -5,7 +5,7 @@
 -- Add subscription tier to profiles
 ALTER TABLE public.profiles
   ADD COLUMN subscription_tier text NOT NULL DEFAULT 'trial'
-    CHECK (subscription_tier IN ('trial', 'tier1', 'tier2'));
+    CHECK (subscription_tier IN ('trial', 'expired_trial', 'tier1', 'tier2'));
 
 -- Trial expiry
 ALTER TABLE public.profiles

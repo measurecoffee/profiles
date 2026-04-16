@@ -69,8 +69,11 @@ export type Database = {
           deep_context: Json
           id: string
           identity: Json
+          phone: string | null
           profile_version: number
           sharing_allowlist: Json
+          subscription_tier: string
+          trial_started_at: string | null
           updated_at: string
           updated_by: string
           user_id: string
@@ -82,8 +85,11 @@ export type Database = {
           deep_context?: Json
           id?: string
           identity?: Json
+          phone?: string | null
           profile_version?: number
           sharing_allowlist?: Json
+          subscription_tier?: string
+          trial_started_at?: string | null
           updated_at?: string
           updated_by?: string
           user_id: string
@@ -95,11 +101,53 @@ export type Database = {
           deep_context?: Json
           id?: string
           identity?: Json
+          phone?: string | null
           profile_version?: number
           sharing_allowlist?: Json
+          subscription_tier?: string
+          trial_started_at?: string | null
           updated_at?: string
           updated_by?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      token_usage: {
+        Row: {
+          created_at: string
+          id: string
+          input_tokens: number
+          output_tokens: number
+          request_count: number
+          total_tokens: number
+          updated_at: string
+          user_id: string
+          week_start: string
+          weekly_budget: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_tokens?: number
+          output_tokens?: number
+          request_count?: number
+          total_tokens?: number
+          updated_at?: string
+          user_id: string
+          week_start: string
+          weekly_budget?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_tokens?: number
+          output_tokens?: number
+          request_count?: number
+          total_tokens?: number
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+          weekly_budget?: number
         }
         Relationships: []
       }
@@ -109,9 +157,24 @@ export type Database = {
     }
     Functions: {
       apply_approved_update: { Args: { p_update_id: string }; Returns: boolean }
+      check_token_budget: {
+        Args: { p_user_id: string }
+        Returns: {
+          remaining_tokens: number
+          tier: string
+          used_tokens: number
+          week_start_date: string
+          weekly_budget: number
+        }[]
+      }
+      get_weekly_budget: { Args: { tier: string }; Returns: number }
       query_profile_context: {
         Args: { p_path: string; p_requester?: string; p_user_id: string }
         Returns: Json
+      }
+      record_token_usage: {
+        Args: { p_input: number; p_output: number; p_user_id: string }
+        Returns: number
       }
     }
     Enums: {

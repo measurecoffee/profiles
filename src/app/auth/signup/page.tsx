@@ -318,10 +318,10 @@ export default function SignupPage() {
               onChange={(e) => setPhone(e.target.value)}
               required
               className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
-              placeholder="+1 555 123 4567"
+              placeholder="(555) 123-4567"
             />
             <p className="text-xs text-[#8B7355] mt-1">
-              We&apos;ll send a verification code via SMS. One trial per phone number.
+              US numbers — enter 10 digits. One trial per phone number.
             </p>
           </div>
 

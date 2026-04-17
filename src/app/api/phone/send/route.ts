@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getTwilioClient, getVerifyService, isTwilioConfigured } from '@/lib/twilio'
+import { normalizePhone, isValidE164 } from '@/lib/phone'
 
 export async function POST(request: NextRequest) {
-  // Check Twilio is configured
   if (!isTwilioConfigured()) {
     return NextResponse.json(
       { error: 'Phone verification is not available' },
@@ -11,10 +11,19 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { phone } = await request.json()
+  const { phone: rawPhone } = await request.json()
 
-  if (!phone || typeof phone !== 'string') {
+  if (!rawPhone || typeof rawPhone !== 'string') {
     return NextResponse.json({ error: 'Phone number is required' }, { status: 400 })
+  }
+
+  const phone = normalizePhone(rawPhone)
+
+  if (!isValidE164(phone)) {
+    return NextResponse.json(
+      { error: 'Invalid phone number format. Enter a 10-digit US number or include country code.' },
+      { status: 400 }
+    )
   }
 
   // Auth check — user must be logged in
@@ -63,7 +72,7 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     console.error('[phone/send] Twilio error:', err.message)
     return NextResponse.json(
-      { error: 'Failed to send verification code. Check the phone number format.' },
+      { error: 'Failed to send verification code. Please check the phone number and try again.' },
       { status: 500 }
     )
   }

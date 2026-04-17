@@ -26,6 +26,9 @@ export async function POST(request: NextRequest) {
       (m: { role: string }) => m.role !== 'system'
     )
 
+    // Check trial expiry before anything else (ensures mid-session expiry is caught)
+    await supabase.rpc('check_trial_expiry', { p_user_id: user.id })
+
     // Get user profile
     const { data: profile } = await supabase
       .from('profiles')

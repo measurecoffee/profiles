@@ -20,7 +20,11 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      setError(error.message)
+      if (error.message.toLowerCase().includes('email not confirmed') || error.message.toLowerCase().includes('not verified')) {
+        setError('Your email is not yet confirmed. Check your inbox for a verification link, or sign up again with phone verification.')
+      } else {
+        setError(error.message)
+      }
       setLoading(false)
     } else {
       router.push('/account/profile')

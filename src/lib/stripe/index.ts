@@ -11,7 +11,7 @@ export const stripe: Stripe | null = process.env.STRIPE_SECRET_KEY
 
 export const PLANS = {
   tier1: {
-    name: 'Barista',
+    name: 'Basic',
     price: 5,
     priceId: process.env.STRIPE_TIER1_PRICE_ID || '',
     model: 'google/gemma-4-26b-a4b-it',
@@ -24,13 +24,13 @@ export const PLANS = {
     ],
   },
   tier2: {
-    name: 'Roaster',
+    name: 'Pro',
     price: 19,
     priceId: process.env.STRIPE_TIER2_PRICE_ID || '',
     model: 'google/gemma-4-31b-it',
     weeklyTokens: 500_000,
     features: [
-      'Everything in Barista',
+      'Everything in Basic',
       'Advanced diagnostics',
       'Business operations',
       'Priority model',

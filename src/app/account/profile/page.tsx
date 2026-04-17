@@ -120,7 +120,7 @@ export default async function ProfilePage() {
                     }}
                     className="block w-full text-center py-3 px-4 bg-[#2C1810] text-white rounded-lg font-medium hover:bg-[#3D2918] transition-colors"
                   >
-                    Upgrade to Barista — $5/mo
+                    Upgrade to Basic — $5/mo
                   </a>
                   <a
                     href="#"
@@ -136,7 +136,7 @@ export default async function ProfilePage() {
                     }}
                     className="block w-full text-center py-3 px-4 border-2 border-[#2C1810] text-[#2C1810] rounded-lg font-medium hover:bg-[#F0E8DC] transition-colors"
                   >
-                    Upgrade to Roaster — $19/mo
+                    Upgrade to Pro — $19/mo
                   </a>
                 </div>
               ) : tier === 'tier1' ? (
@@ -154,7 +154,7 @@ export default async function ProfilePage() {
                   }}
                   className="block w-full text-center py-3 px-4 bg-[#2C1810] text-white rounded-lg font-medium hover:bg-[#3D2918] transition-colors"
                 >
-                  Upgrade to Roaster — $19/mo
+                  Upgrade to Pro — $19/mo
                 </a>
               ) : null}
             </div>

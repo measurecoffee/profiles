@@ -32,7 +32,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     canChat: false,
   },
   tier1: {
-    name: 'Barista',
+    name: 'Basic',
     price: 5,
     model: 'google/gemma-4-26b-a4b-it',
     weeklyTokenBudget: 150_000,
@@ -41,12 +41,12 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     canChat: true,
   },
   tier2: {
-    name: 'Roaster',
+    name: 'Pro',
     price: 19,
     model: 'google/gemma-4-31b-it',
     weeklyTokenBudget: 500_000,
     maxContextTokens: 16_384,
-    features: ['Everything in Barista', 'Advanced diagnostics', 'Business operations', 'Priority model', 'Extended context'],
+    features: ['Everything in Basic', 'Advanced diagnostics', 'Business operations', 'Priority model', 'Extended context'],
     canChat: true,
   },
 }

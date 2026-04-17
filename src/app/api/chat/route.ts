@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         tier,
         remaining_tokens: 0,
         weekly_budget: budget.weekly_budget,
-        upgrade_message: `You've used your weekly token budget. Upgrade to ${tier === 'trial' ? 'Barista ($5/mo)' : 'a higher tier'} for more.`,
+        upgrade_message: `You've used your weekly token budget. Upgrade to ${tier === 'trial' ? 'Basic ($5/mo)' : 'a higher tier'} for more.`,
         upgrade_url: '/account/profile',
       }, { status: 429 })
     }

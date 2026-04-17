@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { chatWithAgent } from '@/lib/agent/chat'
 import { getTier } from '@/lib/agent/tiers'
+import { parseProfileUpdate, applyProfileUpdate } from '@/lib/agent/profile-update'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,13 +27,13 @@ export async function POST(request: NextRequest) {
       (m: { role: string }) => m.role !== 'system'
     )
 
-    // Check trial expiry before anything else (ensures mid-session expiry is caught)
+    // Check trial expiry before anything else
     await supabase.rpc('check_trial_expiry', { p_user_id: user.id })
 
     // Get user profile
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_tier, identity, active_context, phone_verified')
+      .select('subscription_tier, identity, active_context, deep_context, phone_verified')
       .eq('user_id', user.id)
       .single()
 
@@ -75,6 +76,10 @@ export async function POST(request: NextRequest) {
       }, { status: 429 })
     }
 
+    // Determine if onboarding is needed (no equipment or preferences in deep_context)
+    const deepContext = (profile?.deep_context as Record<string, unknown>) || {}
+    const needsOnboarding = !deepContext.equipment || Object.keys(deepContext.equipment as Record<string, unknown>).length === 0
+
     // Call agent
     const result = await chatWithAgent({
       messages: safeMessages,
@@ -83,8 +88,20 @@ export async function POST(request: NextRequest) {
       profileContext: {
         identity: profile?.identity as Record<string, unknown> | undefined,
         activeContext: profile?.active_context as Record<string, unknown> | undefined,
+        deepContext: deepContext,
+        needsOnboarding,
       },
     })
+
+    // Parse any {{SAVE_PROFILE}} blocks from the agent response
+    const update = parseProfileUpdate(result.message)
+    let cleanMessage = result.message
+    if (update) {
+      // Strip the save block from the visible message
+      cleanMessage = result.message.replace(/\{\{SAVE_PROFILE\}\}[\s\S]*?\{\{\/SAVE_PROFILE\}\}/, '').trim()
+      // Apply the update to the database
+      await applyProfileUpdate(supabase, user.id, update)
+    }
 
     // Record token usage
     const { data: remaining } = await supabase
@@ -97,7 +114,7 @@ export async function POST(request: NextRequest) {
     result.usage.remainingBudget = remaining || 0
 
     return NextResponse.json({
-      message: result.message,
+      message: cleanMessage,
       model: result.model,
       usage: result.usage,
       tier,

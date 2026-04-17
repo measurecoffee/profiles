@@ -28,17 +28,25 @@ export default function ChatPage() {
   const [usage, setUsage] = useState<ChatResponse['usage']>()
   const [tier, setTier] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
+  const [initialized, setInitialized] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight)
   }, [messages])
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || loading) return
+  // Auto-send a greeting to kick off onboarding on first visit
+  useEffect(() => {
+    if (!initialized) {
+      setInitialized(true)
+      sendMessage('Hi! I just signed up.')
+    }
+  }, [initialized])
 
-    const userMessage: Message = { role: 'user', content: input.trim() }
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || loading) return
+
+    const userMessage: Message = { role: 'user', content: text.trim() }
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
     setInput('')
@@ -75,6 +83,11 @@ export default function ChatPage() {
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await sendMessage(input)
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col">
       {/* Header */}
@@ -93,10 +106,10 @@ export default function ChatPage() {
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && !loading && (
           <div className="text-center text-[#8B7355] mt-12">
-            <p className="text-lg mb-2">Ask me anything about coffee ☕</p>
-            <p className="text-sm">Equipment, brewing, maintenance, beans — I&apos;m here to help.</p>
+            <p className="text-lg mb-2">Starting your coffee profile...</p>
+            <p className="text-sm">I&apos;ll ask a few questions so I can give you personalized advice.</p>
           </div>
         )}
 
@@ -129,7 +142,7 @@ export default function ChatPage() {
 
       {/* Input */}
       <div className="border-t border-[#D4C5B0] bg-white p-4">
-        <form onSubmit={sendMessage} className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
             value={input}

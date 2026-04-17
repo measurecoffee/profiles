@@ -13,6 +13,8 @@ interface ChatRequest {
   profileContext?: {
     identity?: Record<string, unknown>
     activeContext?: Record<string, unknown>
+    deepContext?: Record<string, unknown>
+    needsOnboarding?: boolean
     deepContextPath?: string
     deepContextValue?: unknown
   }
@@ -36,9 +38,9 @@ export async function chatWithAgent(request: ChatRequest): Promise<ChatResponse>
   let systemPrompt = COFFEE_AGENT_SYSTEM_PROMPT
 
   if (request.profileContext) {
-    // Inject L1 + L2 profile data into system prompt
     const identity = request.profileContext.identity
     const activeContext = request.profileContext.activeContext
+    const deepContext = request.profileContext.deepContext
 
     if (identity && Object.values(identity).some(v => v !== null && v !== undefined)) {
       systemPrompt += `\n\n## USER PROFILE\n`
@@ -54,6 +56,23 @@ export async function chatWithAgent(request: ChatRequest): Promise<ChatResponse>
       systemPrompt += `\nCurrent focus: ${activeContext.current_focus}\n`
     }
 
+    // Inject existing deep context so agent knows what's already stored
+    if (deepContext && Object.keys(deepContext).length > 0) {
+      const hasContent = Object.values(deepContext).some(
+        v => v && typeof v === 'object' && Object.keys(v as Record<string, unknown>).length > 0
+      )
+      if (hasContent) {
+        systemPrompt += `\n## USER'S STORED PROFILE DATA\n`
+        systemPrompt += JSON.stringify(deepContext, null, 2) + '\n'
+        systemPrompt += `\n(Use this data to personalize your responses. If you learn new info, save it with {{SAVE_PROFILE}}.)\n`
+      }
+    }
+
+    // Onboarding flag
+    if (request.profileContext.needsOnboarding) {
+      systemPrompt += `\n## IMPORTANT: NEW USER ONBOARDING\nThis user has no equipment or preferences on file. Start the onboarding conversation now. Follow the ONBOARDING section in your instructions.\n`
+    }
+
     // If agent requested deep context, inject it
     if (request.profileContext.deepContextPath && request.profileContext.deepContextValue !== undefined) {
       systemPrompt += `\n## USER'S ${request.profileContext.deepContextPath.toUpperCase()}\n`
@@ -64,7 +83,6 @@ export async function chatWithAgent(request: ChatRequest): Promise<ChatResponse>
   // Build messages array — system prompt is ALWAYS first, never from user
   const apiMessages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },
-    // Only include user and assistant messages (never system from client)
     ...request.messages.filter(m => m.role !== 'system'),
   ]
 

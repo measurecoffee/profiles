@@ -187,7 +187,7 @@ export default function SignupPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
-              placeholder="Joel Rhine"
+              placeholder="Coffee Lover"
             />
           </div>
 
@@ -201,7 +201,7 @@ export default function SignupPage() {
               value={handle}
               onChange={(e) => setHandle(e.target.value)}
               className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
-              placeholder="rhonen"
+              placeholder="coffeelover"
             />
           </div>
 

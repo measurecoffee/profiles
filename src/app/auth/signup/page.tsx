@@ -40,14 +40,35 @@ export default function SignupPage() {
       return
     }
 
-    // If phone provided, verify it
-    if (phone && process.env.NEXT_PUBLIC_TWILIO_ENABLED) {
-      setStep('verify-phone')
-      setLoading(false)
+    // If phone provided, send verification SMS
+    if (phone) {
+      try {
+        const res = await fetch('/api/phone/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone }),
+        })
+
+        const data = await res.json()
+
+        if (!res.ok) {
+          // SMS send failed — still let them through, just skip verification
+          console.warn('Phone verification send failed:', data.error)
+          router.push('/account/profile')
+          return
+        }
+
+        setStep('verify-phone')
+      } catch {
+        // Network error — skip verification, proceed to profile
+        router.push('/account/profile')
+      }
     } else {
-      // No phone or Twilio not configured — go straight to profile
+      // No phone — go straight to profile
       router.push('/account/profile')
     }
+
+    setLoading(false)
   }
 
   const handleVerifyPhone = async (e: React.FormEvent) => {
@@ -55,28 +76,46 @@ export default function SignupPage() {
     setError(null)
     setLoading(true)
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    try {
+      const res = await fetch('/api/phone/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code: otp }),
+      })
 
-    if (!user) {
-      setError('Not authenticated')
-      setLoading(false)
-      return
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Verification failed')
+        setLoading(false)
+        return
+      }
+
+      // Verified — go to profile
+      router.push('/account/profile')
+    } catch {
+      setError('Network error. Please try again.')
     }
 
-    // Update profile with verified phone
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ phone })
-      .eq('user_id', user.id)
+    setLoading(false)
+  }
 
-    if (updateError) {
-      setError(updateError.message)
-      setLoading(false)
-      return
+  const handleResendCode = async () => {
+    setError(null)
+    try {
+      const res = await fetch('/api/phone/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to resend code')
+      }
+    } catch {
+      setError('Network error. Please try again.')
     }
-
-    router.push('/account/profile')
   }
 
   if (step === 'verify-phone') {
@@ -119,6 +158,13 @@ export default function SignupPage() {
               {loading ? 'Verifying...' : 'Verify phone'}
             </button>
           </form>
+
+          <button
+            onClick={handleResendCode}
+            className="mt-4 w-full py-2 text-sm text-[#8B7355] hover:text-[#2C1810] transition-colors"
+          >
+            Resend code
+          </button>
         </div>
       </div>
     )
@@ -169,7 +215,7 @@ export default function SignupPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
-              placeholder="+1 (555) 123-4567"
+              placeholder="+15551234567"
             />
             <p className="text-xs text-[#8B7355] mt-1">Used to verify your account. One trial per phone number.</p>
           </div>

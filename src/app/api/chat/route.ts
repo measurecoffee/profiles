@@ -29,12 +29,22 @@ export async function POST(request: NextRequest) {
     // Get user profile
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_tier, identity, active_context')
+      .select('subscription_tier, identity, active_context, phone_verified')
       .eq('user_id', user.id)
       .single()
 
     const tier = profile?.subscription_tier || 'trial'
     const tierConfig = getTier(tier)
+
+    // Trial users must have verified phone to chat
+    if (tier === 'trial' && !profile?.phone_verified) {
+      return NextResponse.json({
+        error: 'Phone verification required',
+        tier,
+        upgrade_message: 'Please verify your phone number to start your free trial.',
+        verify_url: '/account/profile',
+      }, { status: 403 })
+    }
 
     // Block expired trials
     if (!tierConfig.canChat) {

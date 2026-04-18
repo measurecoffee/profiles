@@ -160,7 +160,7 @@ function ProfileInner({ profile, email }: ProfileContentProps) {
             <p className="text-sm text-text-secondary mt-1">
               {completeness >= 100
                 ? 'Your profile is complete! Your agent has everything it needs.'
-                : 'Fill in more details so your coffee agent can personalize every conversation.'}
+                : 'Fill in more details so your coffee agent canpersonalize every conversation.'}
             </p>
             {completeness < 100 && (
               <p className="font-mono text-xs uppercase tracking-wider text-text-muted mt-2">

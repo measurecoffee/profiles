@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, createContext, useContext, type ReactNode } from 'react'
-import { Coffee, ChevronsLeft, ChevronsRight, MessageCircle, FlaskConical, User, Settings } from 'lucide-react'
+import { Coffee, ChevronsLeft, ChevronsRight, MessageCircle, FlaskConical, User, Settings, Plus, ChevronDown } from 'lucide-react'
 import SidebarItem from './sidebar-item'
 
 interface SidebarContextValue {
@@ -38,6 +38,41 @@ function isActive(pathname: string, href: string): boolean {
   // /chat is the default/root
   if (href === '/chat' && (pathname === '/' || pathname === '/(app)')) return true
   return false
+}
+
+function ChatHistorySubsection({ collapsed }: { collapsed: boolean }) {
+  const [expanded, setExpanded] = useState(true)
+
+  if (collapsed) return null
+
+  const now = new Date()
+  const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+
+  return (
+    <div className="mt-1">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 w-full px-3 py-1 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors"
+      >
+        <ChevronDown
+          className={`h-3 w-3 transition-transform duration-150 ${expanded ? '' : '-rotate-90'}`}
+        />
+        Recent
+      </button>
+      {expanded && (
+        <div className="space-y-0.5">
+          <a
+            href="/chat"
+            className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-muted rounded-md transition-colors duration-150"
+          >
+            <MessageCircle className="h-3 w-3 shrink-0" />
+            <span className="truncate">Current Session</span>
+            <span className="ml-auto text-[10px] text-text-muted font-[family-name:var(--font-mono)]">{timeStr}</span>
+          </a>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function Sidebar({ pathname, userName, userTier }: SidebarProps) {
@@ -83,18 +118,41 @@ export default function Sidebar({ pathname, userName, userTier }: SidebarProps) 
           )}
         </div>
 
+        {/* New Chat button (visible when not collapsed) */}
+        {!collapsed && (
+          <div className="px-2 pt-3">
+            <a
+              href="/chat"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-accent border border-border rounded-md hover:bg-latte transition-colors duration-150"
+            >
+              <Plus className="h-4 w-4" />
+              New Chat
+            </a>
+          </div>
+        )}
+
         {/* Nav */}
         <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <SidebarItem
-              key={item.href}
-              icon={item.icon}
-              label={item.label}
-              href={item.href}
-              active={isActive(pathname, item.href)}
-              collapsed={collapsed}
-            />
-          ))}
+          {navItems.map((item, idx) => {
+            const isChatItem = item.href === '/chat'
+            return (
+              <div key={item.href}>
+                <SidebarItem
+                  icon={item.icon}
+                  label={item.label}
+                  href={item.href}
+                  active={isActive(pathname, item.href)}
+                  collapsed={collapsed}
+                >
+                  {isChatItem ? undefined : undefined}
+                </SidebarItem>
+                {/* Chat history subsection */}
+                {isChatItem && isActive(pathname, item.href) && <ChatHistorySubsection collapsed={collapsed} />}
+                {/* Add spacer after chat item for visual separation */}
+                {isChatItem && idx < navItems.length - 1 && <div className="my-2 border-t border-border" />}
+              </div>
+            )
+          })}
         </nav>
 
         {/* Bottom: User info + Collapse toggle */}

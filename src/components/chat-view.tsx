@@ -2,10 +2,15 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Coffee, Send } from 'lucide-react'
+import MessageAvatar from '@/components/chat/message-avatar'
+import TypingIndicator from '@/components/chat/typing-indicator'
+import EmptyState from '@/components/chat/empty-state'
+import MarkdownRenderer from '@/components/chat/markdown-renderer'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  timestamp: Date
 }
 
 interface ChatResponse {
@@ -22,18 +27,18 @@ interface ChatResponse {
   upgrade_message?: string
 }
 
-function TypingIndicator() {
-  return (
-    <div className="flex justify-start">
-      <div className="bg-surface border border-border rounded-2xl px-4 py-3">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-text-muted animate-bounce [animation-delay:0ms]" />
-          <span className="w-2 h-2 rounded-full bg-text-muted animate-bounce [animation-delay:150ms]" />
-          <span className="w-2 h-2 rounded-full bg-text-muted animate-bounce [animation-delay:300ms]" />
-        </div>
-      </div>
-    </div>
-  )
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
+function shouldShowTimestamp(msgs: Message[], index: number): boolean {
+  if (index === 0) return true
+  const prev = msgs[index - 1]
+  const curr = msgs[index]
+  // Show if different minute or different sender
+  const prevMinute = prev.timestamp.getMinutes()
+  const currMinute = curr.timestamp.getMinutes()
+  return prevMinute !== currMinute || prev.role !== curr.role
 }
 
 export default function ChatView() {
@@ -62,7 +67,7 @@ export default function ChatView() {
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return
 
-    const userMessage: Message = { role: 'user', content: text.trim() }
+    const userMessage: Message = { role: 'user', content: text.trim(), timestamp: new Date() }
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
     setInput('')
@@ -73,7 +78,7 @@ export default function ChatView() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages.map(({ role, content }) => ({ role, content })) }),
       })
 
       const data: ChatResponse = await res.json()
@@ -88,7 +93,7 @@ export default function ChatView() {
       }
 
       if (data.message) {
-        setMessages([...newMessages, { role: 'assistant', content: data.message }])
+        setMessages([...newMessages, { role: 'assistant', content: data.message, timestamp: new Date() }])
       }
       setUsage(data.usage)
       setTier(data.tier || '')
@@ -104,6 +109,12 @@ export default function ChatView() {
     e.preventDefault()
     await sendMessage(input)
   }
+
+  const handleSuggestionClick = (text: string) => {
+    sendMessage(text)
+  }
+
+  const isEmpty = messages.length === 0 && !loading
 
   return (
     <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[calc(100vh)] -m-4 md:-m-6 lg:-m-8">
@@ -124,29 +135,45 @@ export default function ChatView() {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-background">
-        {messages.length === 0 && !loading && (
-          <div className="text-center text-text-muted mt-12">
-            <Coffee className="h-12 w-12 mx-auto mb-3 text-accent opacity-40" />
-            <p className="text-lg font-[family-name:var(--font-display)] text-espresso mb-2">Starting your coffee profile...</p>
-            <p className="text-sm">I&apos;ll ask a few questions so I can give you personalized advice.</p>
-          </div>
-        )}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1 bg-background">
+        {isEmpty && <EmptyState onSuggestionClick={handleSuggestionClick} />}
 
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={[
-                'max-w-[80%] rounded-2xl px-4 py-2.5',
-                msg.role === 'user'
-                  ? 'bg-accent text-cream'
-                  : 'bg-surface border border-border text-text-primary',
-              ].join(' ')}
-            >
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+        {messages.map((msg, i) => {
+          const showTimestamp = shouldShowTimestamp(messages, i)
+          const isUser = msg.role === 'user'
+
+          return (
+            <div key={i} className={`message-enter flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+              {/* Avatar — left for agent, hidden for user (user avatar on right) */}
+              {!isUser && <MessageAvatar role="assistant" />}
+
+              <div className={`max-w-[80%] ${isUser ? 'items-end' : 'items-start'}`}>
+                <div
+                  className={[
+                    'rounded-2xl px-4 py-2.5',
+                    isUser
+                      ? 'bg-accent text-cream'
+                      : 'bg-surface border border-border text-text-primary',
+                  ].join(' ')}
+                >
+                  {isUser ? (
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  ) : (
+                    <MarkdownRenderer content={msg.content} />
+                  )}
+                </div>
+                {showTimestamp && (
+                  <p className="text-[10px] font-[family-name:var(--font-mono)] text-text-muted mt-0.5 px-1">
+                    {formatTime(msg.timestamp)}
+                  </p>
+                )}
+              </div>
+
+              {/* User avatar on the right */}
+              {isUser && <MessageAvatar role="user" />}
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         {loading && <TypingIndicator />}
 

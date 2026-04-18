@@ -18,11 +18,11 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
 
   return (
     <div className="relative group my-2">
-      <div className="flex items-center justify-between bg-espresso/5 border border-border rounded-radius-md px-3 py-1 text-[10px] text-text-muted font-mono">
+      <div className="flex items-center justify-between bg-espresso/5 border border-border rounded-radius-md px-3 py-1 text-[10px] text-text-muted-high font-mono">
         <span>{language || 'code'}</span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors duration-150"
+          className="flex items-center gap-1 text-text-muted-high hover:text-text-primary transition-colors duration-150"
           aria-label="Copy code"
         >
           {copied ? (
@@ -91,7 +91,7 @@ export default function MarkdownRenderer({ content }: { content: string }) {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-accent hover:text-accent-hover underline"
+              className="text-accent-dark hover:text-accent-hover underline"
             >
               {children}
             </a>

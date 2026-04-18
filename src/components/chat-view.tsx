@@ -121,12 +121,12 @@ export default function ChatView() {
       {/* Header */}
       <div className="border-b border-border bg-surface px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <Coffee className="h-5 w-5 text-accent" />
+          <Coffee className="h-5 w-5 text-accent" aria-hidden="true" />
           <div>
             <h1 className="text-sm font-semibold text-text-primary font-[family-name:var(--font-display)]">
               measure.coffee
             </h1>
-            <p className="text-xs text-text-muted">
+            <p className="text-xs text-text-muted-high">
               {tier && `${tier}`}
               {usage && ` · ${usage.remainingBudget?.toLocaleString()} tokens left`}
             </p>
@@ -163,7 +163,7 @@ export default function ChatView() {
                   )}
                 </div>
                 {showTimestamp && (
-                  <p className="text-[10px] font-[family-name:var(--font-mono)] text-text-muted mt-0.5 px-1">
+                  <p className="text-[10px] font-[family-name:var(--font-mono)] text-text-muted-high mt-0.5 px-1">
                     {formatTime(msg.timestamp)}
                   </p>
                 )}

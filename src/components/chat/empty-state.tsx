@@ -16,7 +16,7 @@ export default function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-4">
       <div className="flex flex-col items-center gap-4 max-w-sm text-center">
-        <Coffee className="h-14 w-14 text-accent opacity-50" />
+        <Coffee className="h-14 w-14 text-accent opacity-50" aria-hidden="true" />
         <h2 className="font-[family-name:var(--font-display)] text-2xl text-espresso">
           What are you brewing today?
         </h2>

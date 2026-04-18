@@ -56,6 +56,7 @@ function ChatHistorySubsection({ collapsed }: { collapsed: boolean }) {
       >
         <ChevronDown
           className={`h-3 w-3 transition-transform duration-150 ${expanded ? '' : '-rotate-90'}`}
+          aria-hidden="true"
         />
         Recent
       </button>
@@ -65,7 +66,7 @@ function ChatHistorySubsection({ collapsed }: { collapsed: boolean }) {
             href="/chat"
             className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-muted rounded-md transition-colors duration-150"
           >
-            <MessageCircle className="h-3 w-3 shrink-0" />
+            <MessageCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
             <span className="truncate">Current Session</span>
             <span className="ml-auto text-[10px] text-text-muted font-[family-name:var(--font-mono)]">{timeStr}</span>
           </a>
@@ -110,7 +111,7 @@ export default function Sidebar({ pathname, userName, userTier }: SidebarProps) 
       >
         {/* Brand */}
         <div className="flex items-center gap-2 px-4 h-16 border-b border-border shrink-0">
-          <Coffee className="h-6 w-6 text-accent shrink-0" />
+          <Coffee className="h-6 w-6 text-accent shrink-0" aria-hidden="true" />
           {!collapsed && (
             <span className="font-[family-name:var(--font-display)] text-lg text-espresso whitespace-nowrap overflow-hidden">
               measure.coffee
@@ -125,7 +126,7 @@ export default function Sidebar({ pathname, userName, userTier }: SidebarProps) 
               href="/chat"
               className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-accent border border-border rounded-md hover:bg-latte transition-colors duration-150"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4" aria-hidden="true" />
               New Chat
             </a>
           </div>

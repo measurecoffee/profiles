@@ -37,7 +37,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md p-8">
         {/* Brand heading */}
         <div className="flex items-center gap-2 mb-2">
-          <Coffee className="h-8 w-8 text-accent" />
+          <Coffee className="h-8 w-8 text-accent" aria-hidden="true" />
           <h1 className="text-3xl font-[family-name:var(--font-display)] text-espresso">
             measure.coffee
           </h1>
@@ -90,7 +90,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-text-secondary">
           Don&apos;t have an account?{' '}
-          <a href="/auth/signup" className="text-accent font-medium hover:underline">
+          <a href="/auth/signup" className="text-accent-dark font-medium hover:underline">
             Sign up
           </a>
         </p>

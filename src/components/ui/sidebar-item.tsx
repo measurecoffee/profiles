@@ -45,8 +45,9 @@ export default function SidebarItem({
         onClick={handleClick}
         className={baseClasses + ' justify-center'}
         title={label}
+        aria-label={label}
       >
-        <Icon className="h-5 w-5 shrink-0" />
+        <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
       </Link>
     )
   }
@@ -58,7 +59,7 @@ export default function SidebarItem({
         onClick={handleClick}
         className={baseClasses}
       >
-        <Icon className="h-5 w-5 shrink-0" />
+        <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
         <span className="text-sm font-medium truncate">{label}</span>
       </Link>
 

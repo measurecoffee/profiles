@@ -29,7 +29,7 @@ function StepIndicator({ current }: { current: Step }) {
           <span
             className={[
               'text-xs font-medium transition-colors',
-              i <= currentIndex ? 'text-accent' : 'text-text-muted',
+              i <= currentIndex ? 'text-accent-dark' : 'text-text-muted',
             ].join(' ')}
           >
             {STEP_LABELS[step]}
@@ -184,7 +184,7 @@ export default function SignupPage() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-full max-w-md p-8">
           <div className="flex items-center gap-2 mb-2">
-            <Coffee className="h-8 w-8 text-accent" />
+            <Coffee className="h-8 w-8 text-accent" aria-hidden="true" />
             <h1 className="text-3xl font-[family-name:var(--font-display)] text-espresso">
               measure.coffee
             </h1>
@@ -233,7 +233,7 @@ export default function SignupPage() {
             Resend code
           </button>
 
-          <p className="mt-6 text-xs text-text-muted text-center">
+          <p className="mt-6 text-xs text-text-muted-high text-center">
             Phone verification prevents abuse and ensures one trial per number.
           </p>
         </div>
@@ -247,7 +247,7 @@ export default function SignupPage() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-full max-w-lg p-8">
           <div className="flex items-center gap-2 mb-2">
-            <Coffee className="h-8 w-8 text-accent" />
+            <Coffee className="h-8 w-8 text-accent" aria-hidden="true" />
             <h1 className="text-3xl font-[family-name:var(--font-display)] text-espresso">
               measure.coffee
             </h1>
@@ -322,7 +322,7 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8">
         <div className="flex items-center gap-2 mb-2">
-          <Coffee className="h-8 w-8 text-accent" />
+          <Coffee className="h-8 w-8 text-accent" aria-hidden="true" />
           <h1 className="text-3xl font-[family-name:var(--font-display)] text-espresso">
             measure.coffee
           </h1>
@@ -372,7 +372,7 @@ export default function SignupPage() {
               className="w-full px-4 py-2.5 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="(555) 123-4567"
             />
-            <p className="text-xs text-text-muted mt-1">
+            <p className="text-xs text-text-muted-high mt-1">
               US numbers — enter 10 digits. One trial per phone number.
             </p>
           </div>
@@ -420,14 +420,14 @@ export default function SignupPage() {
             {loading ? 'Creating account...' : 'Create account'}
           </button>
 
-          <p className="text-xs text-text-muted text-center">
+          <p className="text-xs text-text-muted-high text-center">
             After creating your account, you&apos;ll verify your phone number, then choose a plan.
           </p>
         </form>
 
         <p className="mt-6 text-center text-sm text-text-secondary">
           Already have an account?{' '}
-          <a href="/auth/login" className="text-accent font-medium hover:underline">
+          <a href="/auth/login" className="text-accent-dark font-medium hover:underline">
             Sign in
           </a>
         </p>

@@ -21,8 +21,18 @@ export default function AppShellProvider({
 
   return (
     <>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-surface focus:text-text-primary"
+      >
+        Skip to content
+      </a>
       <Sidebar pathname={pathname} userName={userName} userTier={userTier} />
-      <AppShell>{children}</AppShell>
+      <AppShell>
+        <div id="main-content" className="page-enter">
+          {children}
+        </div>
+      </AppShell>
       <BottomNav />
     </>
   )

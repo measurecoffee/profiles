@@ -11,7 +11,7 @@ export default function MessageAvatar({ role, userName = 'User' }: MessageAvatar
   if (role === 'assistant') {
     return (
       <div className="w-8 h-8 rounded-full bg-latte border border-border flex items-center justify-center shrink-0">
-        <Coffee className="h-4 w-4 text-accent" />
+        <Coffee className="h-4 w-4 text-accent" aria-hidden="true" />
       </div>
     )
   }

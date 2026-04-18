@@ -22,10 +22,12 @@
   --color-text-primary: #2C1810;
   --color-text-secondary: #8B7355;
   --color-text-muted: #A89984;
+  --color-text-muted-high: #8A7B66;
   --color-primary: #2C1810;
   --color-primary-hover: #3D2918;
   --color-accent: #B87333;
   --color-accent-hover: #9A5E23;
+  --color-accent-dark: #995E23;
   --color-destructive: #DC2626;
   --color-success: #059669;
 
@@ -101,6 +103,27 @@ body {
   animation: subtle-glow 2.5s ease-in-out infinite;
 }
 
+/* Page transition */
+.page-enter {
+  animation: page-fade-in 150ms ease-out both;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Focus ring for accessibility */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .message-enter {
     animation: none;
@@ -111,5 +134,16 @@ body {
   }
   .animate-subtle-glow {
     animation: none;
+  }
+  .page-enter {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

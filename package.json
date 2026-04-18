@@ -12,9 +12,11 @@
     "@stripe/stripe-js": "^9.2.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.3",
+    "lucide-react": "^1.8.0",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
     "stripe": "^22.0.2",
     "twilio": "^5.13.1"
   },

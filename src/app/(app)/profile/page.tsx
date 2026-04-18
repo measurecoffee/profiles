@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import ProfileContent from './profile-content'
+import ProfileContent from '@/app/account/profile/profile-content'
 
 interface Identity {
   name: string | null
@@ -43,9 +43,5 @@ export default async function ProfilePage() {
     .eq('user_id', user.id)
     .single()
 
-  return (
-    <div className="p-4 md:p-6 lg:p-8">
-      <ProfileContent profile={profile as Profile | null} email={user.email || ''} />
-    </div>
-  )
+  return <ProfileContent profile={profile as Profile | null} email={user.email || ''} />
 }

@@ -33,8 +33,11 @@ export async function middleware(request: NextRequest) {
   // Protect routes that require auth
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
   const isAccountRoute = request.nextUrl.pathname.startsWith('/account')
+  const isAppRoute = request.nextUrl.pathname.startsWith('/chat') ||
+    request.nextUrl.pathname.startsWith('/calculator') ||
+    request.nextUrl.pathname.startsWith('/profile')
 
-  if (!session && isAccountRoute) {
+  if (!session && (isAccountRoute || isAppRoute)) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     url.searchParams.set('redirect', request.nextUrl.pathname)

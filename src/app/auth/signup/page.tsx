@@ -3,8 +3,45 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { Coffee } from 'lucide-react'
 
 type Step = 'details' | 'verify-phone' | 'choose-plan'
+
+const STEPS: Step[] = ['details', 'verify-phone', 'choose-plan']
+const STEP_LABELS: Record<Step, string> = {
+  details: 'Details',
+  'verify-phone': 'Verify',
+  'choose-plan': 'Plan',
+}
+
+function StepIndicator({ current }: { current: Step }) {
+  const currentIndex = STEPS.indexOf(current)
+  return (
+    <div className="flex items-center justify-center gap-2 mb-6">
+      {STEPS.map((step, i) => (
+        <div key={step} className="flex items-center gap-2">
+          <div
+            className={[
+              'w-2.5 h-2.5 rounded-full transition-colors',
+              i <= currentIndex ? 'bg-accent' : 'bg-border',
+            ].join(' ')}
+          />
+          <span
+            className={[
+              'text-xs font-medium transition-colors',
+              i <= currentIndex ? 'text-accent' : 'text-text-muted',
+            ].join(' ')}
+          >
+            {STEP_LABELS[step]}
+          </span>
+          {i < STEPS.length - 1 && (
+            <div className="w-6 h-px bg-border mx-1" />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function SignupPage() {
   const [step, setStep] = useState<Step>('details')
@@ -32,7 +69,6 @@ export default function SignupPage() {
 
     const supabase = createClient()
 
-    // Create auth account (autoconfirm is ON, so no email verification needed)
     const { error: signupError } = await supabase.auth.signUp({
       email,
       password,
@@ -47,7 +83,6 @@ export default function SignupPage() {
       return
     }
 
-    // Send phone verification SMS
     try {
       const res = await fetch('/api/phone/send', {
         method: 'POST',
@@ -91,7 +126,6 @@ export default function SignupPage() {
         return
       }
 
-      // Phone verified — now choose plan
       setStep('choose-plan')
     } catch {
       setError('Network error. Please try again.')
@@ -103,12 +137,10 @@ export default function SignupPage() {
   // Step 3: Choose plan
   const handleChoosePlan = (planId: 'trial' | 'tier1' | 'tier2') => {
     if (planId === 'trial') {
-      // Go straight to profile
-      router.push('/account/profile')
+      router.push('/chat')
       return
     }
 
-    // Redirect to Stripe checkout
     fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -120,13 +152,12 @@ export default function SignupPage() {
           window.location.href = data.url
         } else {
           setError(data.error || 'Failed to start checkout. You can upgrade later from your profile.')
-          // Still let them continue
-          router.push('/account/profile')
+          router.push('/chat')
         }
       })
       .catch(() => {
         setError('Network error. You can upgrade later from your profile.')
-        router.push('/account/profile')
+        router.push('/chat')
       })
   }
 
@@ -150,17 +181,23 @@ export default function SignupPage() {
   // ============= RENDER: Verify Phone =============
   if (step === 'verify-phone') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-full max-w-md p-8">
-          <h1 className="text-3xl font-bold text-[#2C1810] mb-2">measure.coffee</h1>
-          <p className="text-[#8B7355] mb-6">Verify your phone number</p>
-          <p className="text-sm text-[#8B7355] mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Coffee className="h-8 w-8 text-accent" />
+            <h1 className="text-3xl font-[family-name:var(--font-display)] text-espresso">
+              measure.coffee
+            </h1>
+          </div>
+          <p className="text-text-secondary mb-4">Verify your phone number</p>
+          <StepIndicator current={step} />
+          <p className="text-sm text-text-secondary mb-6">
             We sent a 6-digit code to <strong>{phone}</strong>. Enter it below to confirm your account.
           </p>
 
           <form onSubmit={handleVerifyPhone} className="space-y-4">
             <div>
-              <label htmlFor="otp" className="block text-sm font-medium text-[#2C1810] mb-1">
+              <label htmlFor="otp" className="block text-sm font-medium text-text-primary mb-1">
                 Verification code
               </label>
               <input
@@ -170,20 +207,20 @@ export default function SignupPage() {
                 onChange={(e) => setOtp(e.target.value)}
                 required
                 maxLength={6}
-                className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
+                className="w-full px-3 py-2.5 border border-border rounded-lg bg-surface text-text-primary text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="000000"
                 autoFocus
               />
             </div>
 
             {error && (
-              <div className="text-red-700 text-sm bg-red-50 p-3 rounded-lg">{error}</div>
+              <div className="text-destructive text-sm bg-red-50 p-3 rounded-lg">{error}</div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-[#2C1810] text-white rounded-lg font-medium hover:bg-[#3D2918] disabled:opacity-50 transition-colors"
+              className="w-full py-2.5 px-6 bg-primary text-cream rounded-full font-medium hover:bg-primary-hover disabled:opacity-50 transition-colors"
             >
               {loading ? 'Verifying...' : 'Verify phone'}
             </button>
@@ -191,12 +228,12 @@ export default function SignupPage() {
 
           <button
             onClick={handleResendCode}
-            className="mt-4 w-full py-2 text-sm text-[#8B7355] hover:text-[#2C1810] transition-colors"
+            className="mt-4 w-full py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
           >
             Resend code
           </button>
 
-          <p className="mt-6 text-xs text-[#8B7355] text-center">
+          <p className="mt-6 text-xs text-text-muted text-center">
             Phone verification prevents abuse and ensures one trial per number.
           </p>
         </div>
@@ -207,62 +244,71 @@ export default function SignupPage() {
   // ============= RENDER: Choose Plan =============
   if (step === 'choose-plan') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-full max-w-lg p-8">
-          <h1 className="text-3xl font-bold text-[#2C1810] mb-2">measure.coffee</h1>
-          <p className="text-[#8B7355] mb-8">Choose your plan</p>
+          <div className="flex items-center gap-2 mb-2">
+            <Coffee className="h-8 w-8 text-accent" />
+            <h1 className="text-3xl font-[family-name:var(--font-display)] text-espresso">
+              measure.coffee
+            </h1>
+          </div>
+          <p className="text-text-secondary mb-4">Choose your plan</p>
+          <StepIndicator current={step} />
 
           {error && (
-            <div className="text-red-700 text-sm bg-red-50 p-3 rounded-lg mb-4">{error}</div>
+            <div className="text-destructive text-sm bg-red-50 p-3 rounded-lg mb-4">{error}</div>
           )}
 
           <div className="space-y-4">
             {/* Trial */}
             <button
               onClick={() => handleChoosePlan('trial')}
-              className="w-full text-left p-5 border border-[#D4C5B0] rounded-xl bg-white hover:border-[#8B7355] transition-colors"
+              className="w-full text-left p-5 border border-border rounded-xl bg-surface hover:border-border-hover transition-colors"
             >
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold text-[#2C1810]">Free Trial</h2>
-                <span className="text-[#8B7355] font-medium">$0</span>
+                <h2 className="text-lg font-semibold text-text-primary">Free Trial</h2>
+                <span className="text-text-secondary font-medium">$0</span>
               </div>
-              <p className="text-sm text-[#8B7355]">
+              <p className="text-sm text-text-secondary">
                 7 days free · 15K weekly tokens · Basic coffee Q&A and equipment lookup
               </p>
             </button>
 
-            {/* Basic */}
+            {/* Basic — cream + copper borders */}
             <button
               onClick={() => handleChoosePlan('tier1')}
-              className="w-full text-left p-5 border-2 border-[#2C1810] rounded-xl bg-white hover:bg-[#F0E8DC] transition-colors"
+              className="w-full text-left p-5 border-2 border-copper rounded-xl bg-cream hover:bg-latte transition-colors"
             >
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold text-[#2C1810]">Basic</h2>
-                <span className="text-[#2C1810] font-bold">$5/mo</span>
+                <h2 className="text-lg font-semibold text-text-primary">Basic</h2>
+                <span className="text-text-primary font-bold">$5/mo</span>
               </div>
-              <p className="text-sm text-[#8B7355]">
+              <p className="text-sm text-text-secondary">
                 150K weekly tokens · Equipment guidance · Maintenance schedules · Full profile memory
               </p>
             </button>
 
-            {/* Pro */}
+            {/* Pro — espresso + gold, copper border + Recommended badge */}
             <button
               onClick={() => handleChoosePlan('tier2')}
-              className="w-full text-left p-5 border border-[#D4C5B0] rounded-xl bg-[#2C1810] hover:bg-[#3D2918] transition-colors"
+              className="relative w-full text-left p-5 border-2 border-copper rounded-xl bg-espresso hover:bg-primary-hover transition-colors"
             >
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full bg-accent text-cream">
+                Recommended
+              </span>
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold text-white">Pro</h2>
-                <span className="text-white font-bold">$19/mo</span>
+                <h2 className="text-lg font-semibold text-cream">Pro</h2>
+                <span className="text-gold font-bold">$19/mo</span>
               </div>
-              <p className="text-sm text-[#8B7355]">
+              <p className="text-sm text-text-secondary">
                 500K weekly tokens · Priority model · Advanced diagnostics · Business consulting
               </p>
             </button>
           </div>
 
           <button
-            onClick={() => router.push('/account/profile')}
-            className="mt-4 w-full py-2 text-sm text-[#8B7355] hover:text-[#2C1810] transition-colors"
+            onClick={() => router.push('/chat')}
+            className="mt-4 w-full py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
           >
             Skip — start with free trial
           </button>
@@ -273,14 +319,20 @@ export default function SignupPage() {
 
   // ============= RENDER: Signup Details =============
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8">
-        <h1 className="text-3xl font-bold text-[#2C1810] mb-2">measure.coffee</h1>
-        <p className="text-[#8B7355] mb-8">Create your profile</p>
+        <div className="flex items-center gap-2 mb-2">
+          <Coffee className="h-8 w-8 text-accent" />
+          <h1 className="text-3xl font-[family-name:var(--font-display)] text-espresso">
+            measure.coffee
+          </h1>
+        </div>
+        <p className="text-text-secondary mb-4">Create your profile</p>
+        <StepIndicator current={step} />
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-[#2C1810] mb-1">
+            <label htmlFor="name" className="block text-sm font-medium text-text-primary mb-1">
               Display name
             </label>
             <input
@@ -288,13 +340,13 @@ export default function SignupPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
+              className="w-full px-4 py-2.5 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="Coffee Lover"
             />
           </div>
 
           <div>
-            <label htmlFor="handle" className="block text-sm font-medium text-[#2C1810] mb-1">
+            <label htmlFor="handle" className="block text-sm font-medium text-text-primary mb-1">
               Handle
             </label>
             <input
@@ -302,14 +354,14 @@ export default function SignupPage() {
               type="text"
               value={handle}
               onChange={(e) => setHandle(e.target.value)}
-              className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
+              className="w-full px-4 py-2.5 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="coffeelover"
             />
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-[#2C1810] mb-1">
-              Phone number <span className="text-red-600">*</span>
+            <label htmlFor="phone" className="block text-sm font-medium text-text-primary mb-1">
+              Phone number <span className="text-destructive">*</span>
             </label>
             <input
               id="phone"
@@ -317,16 +369,16 @@ export default function SignupPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
+              className="w-full px-4 py-2.5 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="(555) 123-4567"
             />
-            <p className="text-xs text-[#8B7355] mt-1">
+            <p className="text-xs text-text-muted mt-1">
               US numbers — enter 10 digits. One trial per phone number.
             </p>
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-[#2C1810] mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-text-primary mb-1">
               Email
             </label>
             <input
@@ -335,13 +387,13 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
+              className="w-full px-4 py-2.5 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-[#2C1810] mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-text-primary mb-1">
               Password
             </label>
             <input
@@ -351,31 +403,31 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-3 py-2 border border-[#D4C5B0] rounded-lg bg-white text-[#2C1810] focus:outline-none focus:ring-2 focus:ring-[#8B7355]"
+              className="w-full px-4 py-2.5 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <div className="text-red-700 text-sm bg-red-50 p-3 rounded-lg">{error}</div>
+            <div className="text-destructive text-sm bg-red-50 p-3 rounded-lg">{error}</div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 bg-[#2C1810] text-white rounded-lg font-medium hover:bg-[#3D2918] disabled:opacity-50 transition-colors"
+            className="w-full py-2.5 px-6 bg-primary text-cream rounded-full font-medium hover:bg-primary-hover disabled:opacity-50 transition-colors"
           >
             {loading ? 'Creating account...' : 'Create account'}
           </button>
 
-          <p className="text-xs text-[#8B7355] text-center">
+          <p className="text-xs text-text-muted text-center">
             After creating your account, you&apos;ll verify your phone number, then choose a plan.
           </p>
         </form>
 
-        <p className="mt-6 text-center text-sm text-[#8B7355]">
+        <p className="mt-6 text-center text-sm text-text-secondary">
           Already have an account?{' '}
-          <a href="/auth/login" className="text-[#2C1810] font-medium hover:underline">
+          <a href="/auth/login" className="text-accent font-medium hover:underline">
             Sign in
           </a>
         </p>

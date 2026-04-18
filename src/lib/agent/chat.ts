@@ -1,5 +1,6 @@
 import { COFFEE_AGENT_SYSTEM_PROMPT } from '@/lib/agent/system-prompt'
 import { getTier } from '@/lib/agent/tiers'
+import type { CalculatorContextPayload } from '@/lib/calculator/context'
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -17,6 +18,7 @@ interface ChatRequest {
     needsOnboarding?: boolean
     deepContextPath?: string
     deepContextValue?: unknown
+    calculatorContext?: CalculatorContextPayload
   }
 }
 
@@ -41,6 +43,7 @@ export async function chatWithAgent(request: ChatRequest): Promise<ChatResponse>
     const identity = request.profileContext.identity
     const activeContext = request.profileContext.activeContext
     const deepContext = request.profileContext.deepContext
+    const calculatorContext = request.profileContext.calculatorContext
 
     if (identity && Object.values(identity).some(v => v !== null && v !== undefined)) {
       systemPrompt += `\n\n## USER PROFILE\n`
@@ -66,6 +69,12 @@ export async function chatWithAgent(request: ChatRequest): Promise<ChatResponse>
         systemPrompt += JSON.stringify(deepContext, null, 2) + '\n'
         systemPrompt += `\n(Use this data to personalize your responses. If you learn new info, save it with {{SAVE_PROFILE}}.)\n`
       }
+    }
+
+    if (calculatorContext && Object.keys(calculatorContext).length > 0) {
+      systemPrompt += `\n## CURRENT CALCULATOR CONTEXT\n`
+      systemPrompt += JSON.stringify(calculatorContext, null, 2) + '\n'
+      systemPrompt += `\n(These values came directly from the user's calculator workflow. Use them as structured brew context in your response.)\n`
     }
 
     // Onboarding flag

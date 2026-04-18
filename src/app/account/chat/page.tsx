@@ -1,7 +1,5 @@
-'use client'
-
-import ChatView from '@/components/chat-view'
+import { redirect } from 'next/navigation'
 
 export default function AccountChatPage() {
-  return <ChatView />
+  redirect('/chat')
 }

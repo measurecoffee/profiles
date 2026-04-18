@@ -1,50 +1,53 @@
-'use client'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import SettingsContent from './settings-content'
 
-import { Settings, LogOut, User, Bell, Shield } from 'lucide-react'
+interface Identity {
+  name: string | null
+  handle: string | null
+  timezone: string | null
+  roles: string[]
+  communication_style: string | null
+  active_projects: string[]
+  profile_version: number
+}
 
-export default function SettingsPage() {
+interface Profile {
+  id: string
+  user_id: string
+  identity: Identity
+  active_context: Record<string, unknown>
+  deep_context: Record<string, Record<string, unknown>>
+  sharing_allowlist: Record<string, string[]>
+  advanced_config: boolean
+  subscription_tier: string
+  trial_started_at: string | null
+  phone: string | null
+  phone_verified: boolean
+  profile_version: number
+  updated_at: string
+  updated_by: string
+}
+
+export default async function SettingsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/auth/login')
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .single()
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-[family-name:var(--font-display)] text-espresso mb-1">
-          Settings
-        </h1>
-        <p className="text-text-secondary text-sm">
-          Manage your account and preferences.
-        </p>
-      </div>
-
-      <div className="bg-surface border border-border rounded-xl divide-y divide-border">
-        <a href="/account/profile" className="flex items-center gap-3 px-5 py-4 hover:bg-surface-muted transition-colors">
-          <User className="h-5 w-5 text-text-muted" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-text-primary">Profile</p>
-            <p className="text-xs text-text-muted">View and edit your coffee identity</p>
-          </div>
-        </a>
-        <button className="flex items-center gap-3 px-5 py-4 w-full text-left hover:bg-surface-muted transition-colors">
-          <Bell className="h-5 w-5 text-text-muted" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-text-primary">Notifications</p>
-            <p className="text-xs text-text-muted">Manage notification preferences</p>
-          </div>
-        </button>
-        <button className="flex items-center gap-3 px-5 py-4 w-full text-left hover:bg-surface-muted transition-colors">
-          <Shield className="h-5 w-5 text-text-muted" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-text-primary">Privacy</p>
-            <p className="text-xs text-text-muted">Control what your agent remembers</p>
-          </div>
-        </button>
-        <form action="/auth/logout" method="post">
-          <button type="submit" className="flex items-center gap-3 px-5 py-4 w-full text-left hover:bg-surface-muted transition-colors text-destructive">
-            <LogOut className="h-5 w-5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">Sign out</p>
-            </div>
-          </button>
-        </form>
-      </div>
-    </div>
+    <SettingsContent
+      email={user.email || ''}
+      displayName={user.user_metadata?.full_name || user.user_metadata?.name || null}
+      profile={profile as Profile | null}
+    />
   )
 }

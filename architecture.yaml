@@ -1,0 +1,219 @@
+# measure.coffee Architecture
+# Single source of truth — agents read this, HTML diagrams render from this.
+# ALWAYS update this file when infrastructure changes.
+
+project: measure.coffee
+repo: measurecoffee/profiles
+description: Agent-native coffee expertise platform
+status: beta
+updated: 2025-04-17
+
+domains:
+  marketing: measure.coffee
+  app: app.measure.coffee
+
+deployment:
+  platform: vercel
+  plan: hobby
+  project_id: prj_suqkTNFSVrk7wSWuQk5BbqtcgrW2
+  org_id: h52OXzBGHvt9U9CBhBesBROu
+  auto_deploy: github_push_main
+  framework: nextjs
+
+components:
+  # ── Frontend ──────────────────────────────────────────────
+  - id: nextjs-app
+    name: Next.js 16 App
+    type: frontend
+    color: cyan
+    tech: [Next.js 16, App Router, SSR, Tailwind CSS]
+    location: vercel
+    routes:
+      - /auth/signup → 3-step signup (details → SMS verify → choose plan)
+      - /auth/login → email + password login
+      - /auth/callback → Supabase auth code exchange
+      - /account/chat → real-time chat with coffee agent
+      - /account/profile → profile viewer + subscription management
+      - /api/chat → agent conversation endpoint
+      - /api/stripe/checkout → Stripe checkout session creation
+      - /api/stripe/portal → Stripe customer portal session
+      - /api/stripe/webhook → Stripe event handler
+      - /api/phone/send → Twilio SMS OTP send
+      - /api/phone/verify → Twilio SMS OTP verification
+
+  # ── Authentication ────────────────────────────────────────
+  - id: supabase-auth
+    name: Supabase Auth
+    type: security
+    color: rose
+    tech: [Supabase Auth, email+password, autoconfirm ON]
+    location: supabase
+    notes: mailer_autoconfirm=true — no email verification gate
+
+  - id: twilio-verify
+    name: Twilio Verify
+    type: security
+    color: amber
+    tech: [Twilio Verify, SMS OTP]
+    location: external
+    service_sid: VAc496f515bef1055202f6cc31bcb99592
+
+  # ── Database ──────────────────────────────────────────────
+  - id: supabase-db
+    name: PostgreSQL
+    type: database
+    color: violet
+    tech: [PostgreSQL, RLS, pg_cron]
+    location: supabase
+    region: us-east-1
+    project_ref: caufndpgesqemyeaeiup
+    tables:
+      - profiles: user profiles, three-layer context, subscription tier, phone
+      - token_usage: per-user weekly token consumption
+      - pending_updates: agent-proposed profile diffs awaiting approval
+    functions:
+      - handle_new_user(): trigger — auto-creates profile on signup
+      - check_trial_expiry(): flips trial → expired_trial after 7 days (pg_cron hourly)
+      - check_token_budget(): returns remaining weekly budget
+      - record_token_usage(): upserts token consumption
+      - query_profile_context(): dot-path read from deep_context with allowlist
+      - apply_approved_update(): merges approved pending_update into deep_context
+
+  # ── Profile Architecture ──────────────────────────────────
+  - id: profile-l1
+    name: L1 Identity
+    type: backend
+    color: violet
+    notes: ~150 tokens, always loaded. Fields: name, handle, timezone, roles, communication_style, active_projects
+
+  - id: profile-l2
+    name: L2 Active Context
+    type: backend
+    color: emerald
+    notes: ~300 tokens, per-session. Fields: current_focus, recent_activity, active_issues, session_hint
+
+  - id: profile-l3
+    name: L3 Deep Context
+    type: backend
+    color: cyan
+    notes: On-demand, unlimited. Sections: equipment, preferences, location, projects, businesses, maintenance, relationships, custom
+
+  # ── LLM ───────────────────────────────────────────────────
+  - id: openrouter
+    name: OpenRouter
+    type: backend
+    color: emerald
+    tech: [OpenRouter, chat/completions API]
+    location: external
+    model: google/gemma-4-26b-a4b-it (default)
+    notes: Protected system prompt injected server-side. Domain enforcement (coffee-only).
+
+  # ── Agent ─────────────────────────────────────────────────
+  - id: coffee-agent
+    name: Coffee Agent
+    type: backend
+    color: emerald
+    tech: [system prompt, onboarding, profile-save]
+    notes:
+      - Domain-locked to coffee topics only
+      - Auto-onboards new users (equipment, brew method, location, role)
+      - Saves learned info via {{SAVE_PROFILE}} blocks → deep_context
+      - Token budget enforced per tier
+
+  # ── Billing ───────────────────────────────────────────────
+  - id: stripe
+    name: Stripe
+    type: cloud
+    color: amber
+    tech: [Stripe Checkout, Customer Portal, Webhooks]
+    location: external
+    prices:
+      basic: price_1TN13iK845ZpJYsTEyh2yO0y ($5/mo)
+      pro: price_1TN13kK845ZpJYsTP3DdScrC ($19/mo)
+    portal_config: bpc_1TN4jTK845ZpJYsTXyocg86M
+
+  # ── CDN ───────────────────────────────────────────────────
+  - id: vercel-cdn
+    name: Vercel Edge
+    type: cloud
+    color: amber
+    tech: [Vercel Edge Network]
+    location: vercel
+
+regions:
+  - id: supabase-cloud
+    name: Supabase Cloud
+    color: amber
+    region: us-east-1
+    contains: [supabase-auth, supabase-db, profile-l1, profile-l2, profile-l3]
+
+connections:
+  - from: users
+    to: vercel-cdn
+    type: https
+    label: HTTPS
+
+  - from: vercel-cdn
+    to: nextjs-app
+    type: https
+    label: SSR
+
+  - from: nextjs-app
+    to: supabase-db
+    type: api
+    protocol: PostgREST
+    label: queries
+
+  - from: nextjs-app
+    to: openrouter
+    type: api
+    protocol: chat/completions
+    label: LLM calls
+
+  - from: nextjs-app
+    to: stripe
+    type: api
+    label: checkout + portal
+
+  - from: stripe
+    to: nextjs-app
+    type: webhook
+    label: events
+
+  - from: supabase-auth
+    to: nextjs-app
+    type: auth
+    protocol: JWT
+    label: session
+
+  - from: supabase-auth
+    to: twilio-verify
+    type: api
+    label: SMS OTP
+
+  - from: openrouter
+    to: coffee-agent
+    type: model
+    label: Gemma 4 26B
+
+tiers:
+  trial:
+    price: free (7 days)
+    token_budget: 15000/week
+    can_chat: true
+    requires_phone: true
+  basic:
+    price: $5/mo
+    token_budget: 150000/week
+    can_chat: true
+  pro:
+    price: $19/mo
+    token_budget: 500000/week
+    can_chat: true
+
+security:
+  - Row Level Security on all tables (users see own data only)
+  - System prompt never sent to client (server-side only)
+  - SMS verification required for trial
+  - Token budget enforced at API level
+  - Stripe webhook signature verification

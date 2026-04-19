@@ -1,0 +1,54 @@
+name: Deployment Smoke
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Preview or production URL to verify
+        required: true
+        type: string
+      deep_health:
+        description: Run authenticated deep health checks
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  smoke:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'deployment_status' &&
+        github.event.deployment_status.state == 'success' &&
+        github.event.deployment_status.environment_url != ''
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Resolve target URL
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "BASE_URL=${{ inputs.base_url }}" >> "$GITHUB_ENV"
+            echo "DEEP_HEALTH=${{ inputs.deep_health }}" >> "$GITHUB_ENV"
+          else
+            echo "BASE_URL=${{ github.event.deployment_status.environment_url }}" >> "$GITHUB_ENV"
+            echo "DEEP_HEALTH=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run deployment smoke checks
+        run: node scripts/smoke-check.mjs
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+          DEEP_HEALTH: ${{ env.DEEP_HEALTH }}
+          HEALTHCHECK_KEY: ${{ secrets.DEPLOYMENT_SMOKE_TEST_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}

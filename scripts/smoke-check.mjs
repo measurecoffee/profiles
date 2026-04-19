@@ -9,83 +9,68 @@ if (!baseUrl) {
 }
 
 const normalizedBaseUrl = new URL(baseUrl).toString().replace(/\/$/, '')
-const MAX_PROTECTION_HOPS = 5
 
 /**
- * Send a request that transparently handles Vercel Deployment Protection
- * redirects while preserving the caller's intent for app-level redirects.
+ * Obtain a _vercel_jwt cookie that bypasses Vercel Deployment Protection,
+ * then perform the actual request with that cookie.
  *
- * The problem: Node.js native fetch strips custom headers on cross-origin
- * redirects by spec, which breaks Vercel Deployment Protection bypass and
- * causes infinite redirect loops.
+ * Vercel's Deployment Protection bypass flow:
+ *   1. Send x-vercel-protection-bypass + x-vercel-set-bypass-cookie headers
+ *   2. Vercel responds 307 to same URL + set-cookie: _vercel_jwt=...
+ *   3. Re-request with the _vercel_jwt cookie → app responds normally
  *
- * Vercel's protection bypass flow:
- *   1. Request includes x-vercel-protection-bypass + x-vercel-set-bypass-cookie
- *   2. Vercel responds with 307 → same URL, set-cookie: _vercel_jwt
- *   3. Follow that one redirect → app responds normally
- *
- * We only follow "protection redirects" (same-URL 307 with _vercel_jwt cookie).
- * App-level redirects (different URL) are returned to the caller as-is.
+ * Node.js native fetch strips custom headers on cross-origin redirects by
+ * spec and has no cookie jar, so we must handle this manually.
  */
-async function request(path, init = {}) {
-  let url = new URL(path, `${normalizedBaseUrl}/`).toString()
-  const method = init.method ?? 'GET'
+async function obtainVercelJwtCookie(baseUrl) {
+  if (!vercelAutomationBypassSecret) return null
 
-  for (let hops = 0; hops <= MAX_PROTECTION_HOPS; hops++) {
-    const headers = new Headers(init.headers ?? {})
+  const headers = new Headers()
+  headers.set('x-vercel-protection-bypass', vercelAutomationBypassSecret)
+  headers.set('x-vercel-set-bypass-cookie', 'true')
 
-    if (vercelAutomationBypassSecret) {
-      headers.set('x-vercel-protection-bypass', vercelAutomationBypassSecret)
-      headers.set('x-vercel-set-bypass-cookie', 'true')
-    }
+  const response = await fetch(`${baseUrl}/`, { method: 'GET', headers, redirect: 'manual' })
 
-    const response = await fetch(url, {
-      ...init,
-      method,
-      headers,
-      redirect: 'manual', // we handle Vercel protection redirects ourselves
-    })
+  const setCookies = response.headers.getSetCookie?.() ?? []
+  const jwtCookie = setCookies.find(c => c.startsWith('_vercel_jwt='))
 
-    // Not a redirect, or not a Vercel protection redirect → return as-is
-    if (response.status < 300 || response.status >= 400) {
-      let bodyText = ''
-      try { bodyText = await response.text() } catch { bodyText = '' }
-
-      let json = null
-      if ((response.headers.get('content-type') ?? '').includes('application/json')) {
-        try { json = JSON.parse(bodyText) } catch { json = null }
-      }
-
-      return { url, response, bodyText, json }
-    }
-
-    // It's a redirect. Is it a Vercel protection redirect?
-    // Vercel protection redirects to the SAME URL with a _vercel_jwt set-cookie.
-    const location = response.headers.get('location') ?? ''
-    const hasJwtCookie = (response.headers.get('set-cookie') ?? '').includes('_vercel_jwt')
-
-    // Resolve the location to compare
-    const resolvedLocation = new URL(location, url).toString()
-
-    // Same-URL redirect with JWT cookie → Vercel protection gate, follow it
-    if (hasJwtCookie && resolvedLocation.replace(/\/$/, '') === url.replace(/\/$/, '')) {
-      // Follow this protection redirect (re-send with bypass headers on next loop iteration)
-      continue
-    }
-
-    // Any other redirect → this is an app-level redirect, return to caller
-    let bodyText = ''
-    try { bodyText = await response.text() } catch { bodyText = '' }
-
-    let json = null
-    if ((response.headers.get('content-type') ?? '').includes('application/json')) {
-      try { json = JSON.parse(bodyText) } catch { json = null }
-    }
-
-    return { url, response, bodyText, json }
+  if (jwtCookie) {
+    // Extract just the cookie name=value part (before the first semicolon)
+    return jwtCookie.split(';')[0]
   }
 
-  throw new Error(`Exceeded maximum Vercel protection redirect hops (${MAX_PROTECTION_HOPS})`)
+  // No JWT cookie — maybe protection isn't enabled, or the bypass secret is wrong
+  return null
+}
+
+// Resolve the JWT cookie once at startup so all checks can reuse it
+const vercelJwtCookie = await obtainVercelJwtCookie(normalizedBaseUrl)
+
+async function request(path, init = {}) {
+  const url = new URL(path, `${normalizedBaseUrl}/`).toString()
+  const headers = new Headers(init.headers ?? {})
+
+  // Send the _vercel_jwt cookie to bypass Vercel Deployment Protection
+  if (vercelJwtCookie) {
+    headers.set('Cookie', vercelJwtCookie)
+  }
+
+  // Use redirect: 'manual' so we return app-level redirects to the caller
+  const response = await fetch(url, {
+    ...init,
+    headers,
+    redirect: 'manual',
+  })
+
+  let bodyText = ''
+  try { bodyText = await response.text() } catch { bodyText = '' }
+
+  let json = null
+  if ((response.headers.get('content-type') ?? '').includes('application/json')) {
+    try { json = JSON.parse(bodyText) } catch { json = null }
+  }
+
+  return { url, response, bodyText, json }
 }
 
 function assert(condition, message) {
@@ -98,6 +83,12 @@ async function runCheck(name, fn) {
   process.stdout.write(`- ${name}... `)
   await fn()
   console.log('ok')
+}
+
+if (vercelJwtCookie) {
+  console.log('- Vercel Deployment Protection bypass cookie obtained')
+} else if (vercelAutomationBypassSecret) {
+  console.warn('! WARNING: VERCEL_AUTOMATION_BYPASS_SECRET was set but no _vercel_jwt cookie was obtained')
 }
 
 await runCheck('landing page responds or redirects to canonical domain', async () => {

@@ -291,7 +291,7 @@ export default function ChatView({
                     className={[
                       'rounded-[22px] px-4 py-3',
                       isUser
-                        ? 'tech-card-strong text-background'
+                        ? 'tech-card-strong text-[color:var(--color-background)]'
                         : 'tech-card-muted text-text-primary',
                     ].join(' ')}
                   >

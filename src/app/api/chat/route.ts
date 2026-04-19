@@ -5,6 +5,18 @@ import { getTier } from '@/lib/agent/tiers'
 import { parseProfileUpdate, applyProfileUpdate } from '@/lib/agent/profile-update'
 import { sanitizeCalculatorContext } from '@/lib/calculator/context'
 import { deriveThreadTitle, fallbackThreadTitle } from '@/lib/chat/threads'
+import { COFFEE_AGENT_NAME } from '@/lib/agent/brand'
+import {
+  activeContextToJson,
+  buildActiveContextFromChatTurn,
+  normalizeActiveContext,
+} from '@/lib/profile/active-context'
+import {
+  buildSupportIntakeReply,
+  createSupportTicketFromIntake,
+  parseSupportIntakeCommand,
+} from '@/lib/support/workflow'
+import type { Json } from '@/types/supabase'
 
 interface ClientMessage {
   role: 'user' | 'assistant' | 'system'
@@ -16,6 +28,10 @@ interface ThreadRow {
   title: string
   created_at: string
   updated_at: string
+}
+
+interface ChatMessageInsertRow {
+  id: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -103,7 +119,7 @@ export async function POST(request: NextRequest) {
           error: 'Phone verification required',
           tier,
           upgrade_message: 'Please verify your phone number to start your free trial.',
-          verify_url: '/account/profile',
+          verify_url: '/profile',
         },
         { status: 403 }
       )
@@ -114,8 +130,8 @@ export async function POST(request: NextRequest) {
         {
           error: 'Trial expired',
           tier,
-          upgrade_message: 'Your free trial has expired. Upgrade to continue chatting.',
-          upgrade_url: '/account/profile',
+          upgrade_message: `Your free trial has ended. Upgrade to Basic to keep chatting with ${COFFEE_AGENT_NAME}.`,
+          upgrade_url: '/profile',
         },
         { status: 403 }
       )
@@ -125,14 +141,19 @@ export async function POST(request: NextRequest) {
     const budget = budgetInfo?.[0]
 
     if (budget && budget.remaining_tokens <= 0) {
+      const upgradeMessage =
+        tier === 'tier1'
+          ? 'You hit the Basic weekly limit. Upgrade to Pro ($19/mo) for 500K tokens/week.'
+          : "You've hit your weekly token limit. Upgrade to Basic ($5/mo) or Pro ($19/mo) for more usage."
+
       return NextResponse.json(
         {
           error: 'Token budget exceeded',
           tier,
           remaining_tokens: 0,
           weekly_budget: budget.weekly_budget,
-          upgrade_message: `You've used your weekly token budget. Upgrade to ${tier === 'trial' ? 'Basic ($5/mo)' : 'a higher tier'} for more.`,
-          upgrade_url: '/account/profile',
+          upgrade_message: upgradeMessage,
+          upgrade_url: '/profile',
         },
         { status: 429 }
       )
@@ -196,41 +217,97 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { error: persistUserError } = await supabase.from('chat_messages').insert({
-      thread_id: thread.id,
-      user_id: user.id,
-      role: 'user',
-      content: latestUserMessage.content,
-    })
+    const { data: persistedUserMessage, error: persistUserError } = await supabase
+      .from('chat_messages')
+      .insert({
+        thread_id: thread.id,
+        user_id: user.id,
+        role: 'user',
+        content: latestUserMessage.content,
+      })
+      .select('id')
+      .single()
 
-    if (persistUserError) {
-      console.error('Failed to persist user message:', persistUserError.message)
+    if (persistUserError || !persistedUserMessage) {
+      console.error('Failed to persist user message:', persistUserError?.message ?? 'Unknown insert failure')
       return NextResponse.json({ error: 'Failed to persist user message' }, { status: 500 })
     }
 
-    const deepContext = (profile?.deep_context as Record<string, unknown>) || {}
-    const needsOnboarding =
-      !deepContext.equipment || Object.keys(deepContext.equipment as Record<string, unknown>).length === 0
+    const supportCommand = parseSupportIntakeCommand(latestUserMessage.content)
+    let cleanMessage = ''
+    let responseModel = 'support-router-v1'
+    let usage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      remainingBudget: budget?.remaining_tokens ?? 0,
+    }
+    let shouldRecordTokenUsage = false
 
-    const result = await chatWithAgent({
-      messages: safeMessages,
-      userId: user.id,
-      tier,
-      profileContext: {
-        identity: profile?.identity as Record<string, unknown> | undefined,
-        activeContext: profile?.active_context as Record<string, unknown> | undefined,
-        deepContext,
-        needsOnboarding,
-        calculatorContext: calculatorContext ?? undefined,
-      },
-    })
+    if (supportCommand.isCommand) {
+      if (!supportCommand.details) {
+        cleanMessage =
+          'Use `/support <what happened>` to open a support ticket. Include expected behavior, actual behavior, and reproduction steps.'
+      } else {
+        try {
+          const supportResult = await createSupportTicketFromIntake(supabase, {
+            userId: user.id,
+            source: 'chat',
+            description: supportCommand.details,
+            sourceThreadId: thread.id,
+            sourceMessageId: (persistedUserMessage as ChatMessageInsertRow).id,
+            reporterTimezone:
+              typeof profile?.identity === 'object' &&
+              profile.identity !== null &&
+              'timezone' in profile.identity &&
+              typeof (profile.identity as Record<string, unknown>).timezone === 'string'
+                ? ((profile.identity as Record<string, unknown>).timezone as string)
+                : null,
+            actorType: 'user',
+            actorId: user.id,
+          })
 
-    const update = parseProfileUpdate(result.message)
-    let cleanMessage = result.message
+          cleanMessage = buildSupportIntakeReply(supportResult)
+        } catch (error) {
+          cleanMessage =
+            `Could not create a support ticket: ${error instanceof Error ? error.message : 'unknown error'}. ` +
+            'Please retry with enough detail.'
+        }
+      }
+    } else {
+      const deepContext = (profile?.deep_context as Record<string, unknown>) || {}
+      const needsOnboarding =
+        !deepContext.equipment || Object.keys(deepContext.equipment as Record<string, unknown>).length === 0
 
-    if (update) {
-      cleanMessage = result.message.replace(/\{\{SAVE_PROFILE\}\}[\s\S]*?\{\{\/SAVE_PROFILE\}\}/, '').trim()
-      await applyProfileUpdate(supabase, user.id, update)
+      const result = await chatWithAgent({
+        messages: safeMessages,
+        userId: user.id,
+        tier,
+        profileContext: {
+          identity: profile?.identity as Record<string, unknown> | undefined,
+          activeContext: profile?.active_context as Record<string, unknown> | undefined,
+          deepContext,
+          needsOnboarding,
+          calculatorContext: calculatorContext ?? undefined,
+        },
+      })
+
+      shouldRecordTokenUsage = true
+      responseModel = result.model
+      usage = {
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        totalTokens: result.usage.totalTokens,
+        remainingBudget: 0,
+      }
+
+      const update = parseProfileUpdate(result.message)
+      cleanMessage = result.message
+
+      if (update) {
+        cleanMessage = result.message.replace(/\{\{SAVE_PROFILE\}\}[\s\S]*?\{\{\/SAVE_PROFILE\}\}/, '').trim()
+        await applyProfileUpdate(supabase, user.id, update)
+      }
     }
 
     if (cleanMessage) {
@@ -247,32 +324,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (calculatorContext) {
-      const activeContext = isRecord(profile?.active_context) ? profile.active_context : {}
-      const priorRecent = Array.isArray(activeContext.recent_activity) ? activeContext.recent_activity : []
-      const contextCapturedAt = new Date().toISOString()
+    const contextCapturedAt = new Date().toISOString()
+    const previousActiveContext = normalizeActiveContext(profile?.active_context)
+    const nextActiveContext = buildActiveContextFromChatTurn({
+      previous: profile?.active_context,
+      conversation: [
+        ...safeMessages,
+        ...(cleanMessage ? [{ role: 'assistant' as const, content: cleanMessage }] : []),
+      ],
+      latestUserMessage: latestUserMessage.content,
+      latestAssistantMessage: cleanMessage,
+      calculatorContext,
+      capturedAt: contextCapturedAt,
+    })
 
-      await supabase
+    const activeContextChanged =
+      JSON.stringify(previousActiveContext) !== JSON.stringify(nextActiveContext)
+
+    if (activeContextChanged) {
+      const { error: activeContextError } = await supabase
         .from('profiles')
         .update({
-          active_context: {
-            ...activeContext,
-            current_focus: `Dialing in ${calculatorContext.title.toLowerCase()}`,
-            session_hint: 'Using calculator context in this conversation',
-            recent_activity: [
-              {
-                type: 'calculator_context_used',
-                calculator: calculatorContext.calculator,
-                summary: calculatorContext.summary,
-                at: contextCapturedAt,
-              },
-              ...priorRecent,
-            ].slice(0, 8),
-          },
+          active_context: activeContextToJson(nextActiveContext) as Json,
           updated_at: contextCapturedAt,
-          updated_by: 'user:calculator-context',
+          updated_by: calculatorContext ? 'user:chat-turn+calculator-context' : 'user:chat-turn',
         })
         .eq('user_id', user.id)
+
+      if (activeContextError) {
+        console.error('Active context update failed:', activeContextError.message)
+      }
     }
 
     const { data: refreshedThread } = await supabase
@@ -282,21 +363,23 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    const { data: remaining } = await supabase.rpc('record_token_usage', {
-      p_user_id: user.id,
-      p_input: result.usage.inputTokens,
-      p_output: result.usage.outputTokens,
-    })
+    if (shouldRecordTokenUsage) {
+      const { data: remaining } = await supabase.rpc('record_token_usage', {
+        p_user_id: user.id,
+        p_input: usage.inputTokens,
+        p_output: usage.outputTokens,
+      })
 
-    result.usage.remainingBudget = remaining || 0
+      usage.remainingBudget = remaining || 0
+    }
 
     const threadPayload = formatThreadPayload((refreshedThread ?? thread) as ThreadRow)
 
     return NextResponse.json({
       threadId: threadPayload.id,
       message: cleanMessage,
-      model: result.model,
-      usage: result.usage,
+      model: responseModel,
+      usage,
       tier,
       thread: threadPayload,
     })

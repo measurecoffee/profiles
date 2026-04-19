@@ -8,6 +8,8 @@ interface TierConfig {
   model: string           // OpenRouter model ID
   weeklyTokenBudget: number
   maxContextTokens: number // max tokens per request
+  bestFor: string
+  upgradeTrigger: string
   features: string[]
   canChat: boolean         // whether the tier allows chat access
 }
@@ -19,13 +21,15 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     model: 'google/gemma-4-26b-a4b-it',
     weeklyTokenBudget: 15_000,
     maxContextTokens: 4_096,
+    bestFor: 'First-time users evaluating Measure',
+    upgradeTrigger: 'Upgrade when your 7-day trial ends or you need more weekly usage.',
     features: [
-      '7 days free',
+      '7 days of full access',
       'Phone verification required',
-      '15K weekly token budget',
+      '15K tokens per week',
+      '4K context window',
       'Coffee Q&A and equipment lookup',
-      'Basic brewing guidance',
-      'Profile memory (L1 + L2)',
+      'Starter memory (L1 + L2)',
     ],
     canChat: true,
   },
@@ -35,6 +39,8 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     model: 'google/gemma-4-26b-a4b-it',
     weeklyTokenBudget: 0,
     maxContextTokens: 0,
+    bestFor: 'Accounts awaiting a paid plan',
+    upgradeTrigger: 'Upgrade to Basic or Pro to resume chat.',
     features: ['Upgrade to continue'],
     canChat: false,
   },
@@ -44,14 +50,16 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     model: 'google/gemma-4-26b-a4b-it',
     weeklyTokenBudget: 150_000,
     maxContextTokens: 8_192,
+    bestFor: 'Home baristas and solo professionals',
+    upgradeTrigger: 'Upgrade when you hit 150K tokens/week or need cafe-operations support.',
     features: [
+      '150K tokens per week',
+      '8K context window',
       'Unlimited chat sessions',
-      '150K weekly token budget',
-      'Equipment guidance and recommendations',
-      'Maintenance and cleaning schedules',
-      'Brewing parameters and troubleshooting',
+      'Personalized brew guidance and troubleshooting',
+      'Equipment recommendations and care schedules',
       'Full profile memory (L1 + L2 + L3)',
-      'Session context persistence',
+      'Session continuity across conversations',
     ],
     canChat: true,
   },
@@ -61,15 +69,16 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     model: 'google/gemma-4-31b-it',
     weeklyTokenBudget: 500_000,
     maxContextTokens: 16_384,
+    bestFor: 'Cafe teams and high-volume power users',
+    upgradeTrigger: 'Highest available tier.',
     features: [
       'Everything in Basic',
-      '500K weekly token budget',
-      'Priority model (31B)',
-      'Advanced equipment diagnostics',
-      'Cafe operations and workflow consulting',
-      'Business metrics and profitability analysis',
-      'Extended 16K context window',
-      'Deep equipment history tracking',
+      '500K tokens per week',
+      '16K context window',
+      'Priority 31B model routing',
+      'Advanced diagnostics for espresso and brew workflows',
+      'Cafe operations and workflow guidance',
+      'Business metrics support and profitability framing',
     ],
     canChat: true,
   },

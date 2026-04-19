@@ -180,6 +180,231 @@ export type Database = {
         }
         Relationships: []
       }
+      support_engineering_tasks: {
+        Row: {
+          branch_name: string | null
+          created_at: string
+          id: string
+          linked_issue_identifier: string | null
+          merged_at: string | null
+          operator_notes: string | null
+          pull_request_number: number | null
+          pull_request_url: string | null
+          released_at: string | null
+          repo_name: string | null
+          repo_owner: string | null
+          support_ticket_id: string
+          updated_at: string
+          workflow_status: string
+        }
+        Insert: {
+          branch_name?: string | null
+          created_at?: string
+          id?: string
+          linked_issue_identifier?: string | null
+          merged_at?: string | null
+          operator_notes?: string | null
+          pull_request_number?: number | null
+          pull_request_url?: string | null
+          released_at?: string | null
+          repo_name?: string | null
+          repo_owner?: string | null
+          support_ticket_id: string
+          updated_at?: string
+          workflow_status?: string
+        }
+        Update: {
+          branch_name?: string | null
+          created_at?: string
+          id?: string
+          linked_issue_identifier?: string | null
+          merged_at?: string | null
+          operator_notes?: string | null
+          pull_request_number?: number | null
+          pull_request_url?: string | null
+          released_at?: string | null
+          repo_name?: string | null
+          repo_owner?: string | null
+          support_ticket_id?: string
+          updated_at?: string
+          workflow_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_engineering_tasks_support_ticket_id_fkey"
+            columns: ["support_ticket_id"]
+            isOneToOne: true
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_notifications: {
+        Row: {
+          channel: string
+          created_at: string
+          delivered_at: string | null
+          delivery_status: string
+          id: string
+          message: string
+          support_ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string
+          id?: string
+          message: string
+          support_ticket_id: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string
+          id?: string
+          message?: string
+          support_ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_notifications_support_ticket_id_fkey"
+            columns: ["support_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_events: {
+        Row: {
+          actor_id: string | null
+          actor_type: string
+          created_at: string
+          event_payload: Json
+          event_type: string
+          id: string
+          support_ticket_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_type: string
+          created_at?: string
+          event_payload?: Json
+          event_type: string
+          id?: string
+          support_ticket_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          event_payload?: Json
+          event_type?: string
+          id?: string
+          support_ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_events_support_ticket_id_fkey"
+            columns: ["support_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: string
+          last_user_notified_at: string | null
+          latest_customer_status: string | null
+          reporter_contact: Json
+          reporter_timezone: string | null
+          resolution_summary: string | null
+          resolved_at: string | null
+          severity: string
+          source: string
+          source_message_id: string | null
+          source_thread_id: string | null
+          ticket_number: number
+          ticket_status: string
+          title: string
+          triage_notes: string | null
+          triage_status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          last_user_notified_at?: string | null
+          latest_customer_status?: string | null
+          reporter_contact?: Json
+          reporter_timezone?: string | null
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          severity: string
+          source: string
+          source_message_id?: string | null
+          source_thread_id?: string | null
+          ticket_number?: number
+          ticket_status?: string
+          title: string
+          triage_notes?: string | null
+          triage_status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          last_user_notified_at?: string | null
+          latest_customer_status?: string | null
+          reporter_contact?: Json
+          reporter_timezone?: string | null
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          severity?: string
+          source?: string
+          source_message_id?: string | null
+          source_thread_id?: string | null
+          ticket_number?: number
+          ticket_status?: string
+          title?: string
+          triage_notes?: string | null
+          triage_status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_source_thread_id_fkey"
+            columns: ["source_thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       token_usage: {
         Row: {
           created_at: string

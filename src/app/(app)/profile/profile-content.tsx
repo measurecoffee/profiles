@@ -1,8 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { TIERS } from '@/lib/agent/tiers'
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 
 interface Identity {
   name: string | null
@@ -110,7 +111,10 @@ function ProfileInner({ profile, email }: ProfileContentProps) {
 
   const trialStarted = profile?.trial_started_at ? new Date(profile.trial_started_at) : null
   const trialEndsAt = trialStarted ? new Date(trialStarted.getTime() + 7 * 24 * 60 * 60 * 1000) : null
-  const daysLeft = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null
+  const [renderedAt] = useState(() => Date.now())
+  const daysLeft = trialEndsAt
+    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - renderedAt) / (1000 * 60 * 60 * 24)))
+    : null
 
   const completeness = calcCompleteness(profile)
 
@@ -243,14 +247,14 @@ function ProfileInner({ profile, email }: ProfileContentProps) {
 
       {/* ── CTA: Chat with Agent ─────────────────────────────── */}
       {tierConfig.canChat && (
-        <a
+        <Link
           href="/chat"
           className="flex items-center justify-center gap-2 mb-8 py-3.5 px-6 bg-accent text-white rounded-full font-medium hover:bg-accent-hover transition-colors shadow-md hover:shadow-lg"
         >
           <span>☕</span>
           <span>Continue Your Coffee Journey</span>
           <span aria-hidden="true">→</span>
-        </a>
+        </Link>
       )}
 
       {/* ── L1: Your Coffee Identity ─────────────────────────── */}

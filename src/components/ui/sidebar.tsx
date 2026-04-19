@@ -169,13 +169,20 @@ function ChatHistorySubsection({
                     className={[
                       'flex items-center gap-2 rounded-[14px] border px-2.5 py-2 text-xs transition-all duration-150',
                       isThreadActive
-                        ? 'border-border-strong bg-[linear-gradient(135deg,rgba(26,24,20,0.96),rgba(18,16,13,0.98))] text-background'
+                        ? 'border-border-strong bg-[linear-gradient(135deg,rgba(26,24,20,0.96),rgba(18,16,13,0.98))] text-[color:var(--color-background)]'
                         : 'border-transparent text-text-secondary hover:border-border hover:bg-white/72 hover:text-text-primary',
                     ].join(' ')}
                   >
                     <MessageCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
                     <span className="truncate">{thread.title}</span>
-                    <span className="ml-auto text-[10px] text-text-muted-high font-[family-name:var(--font-mono)]">
+                    <span
+                      className={[
+                        'ml-auto text-[10px] font-[family-name:var(--font-mono)]',
+                        isThreadActive
+                          ? 'text-[color:rgba(244,240,228,0.7)]'
+                          : 'text-text-muted-high',
+                      ].join(' ')}
+                    >
                       {formatThreadTimestamp(thread.lastMessageAt || thread.updatedAt)}
                     </span>
                   </Link>

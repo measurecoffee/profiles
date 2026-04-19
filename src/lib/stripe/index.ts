@@ -17,10 +17,11 @@ export const PLANS = {
     model: 'google/gemma-4-26b-a4b-it',
     weeklyTokens: 150_000,
     features: [
-      'Unlimited sessions',
-      'Equipment guidance',
-      'Maintenance schedules',
-      'Profile memory',
+      '150K tokens per week',
+      '8K context window',
+      'Personalized brew guidance',
+      'Equipment maintenance plans',
+      'Full profile memory',
     ],
   },
   tier2: {
@@ -31,10 +32,11 @@ export const PLANS = {
     weeklyTokens: 500_000,
     features: [
       'Everything in Basic',
+      '500K tokens per week',
+      '16K context window',
+      'Priority model routing',
       'Advanced diagnostics',
-      'Business operations',
-      'Priority model',
-      'Extended context',
+      'Cafe operations guidance',
     ],
   },
 } as const

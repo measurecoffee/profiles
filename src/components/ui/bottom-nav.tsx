@@ -48,7 +48,7 @@ export default function BottomNav() {
               'flex min-h-[52px] flex-col items-center justify-center rounded-[16px] border px-2 py-1.5',
               'transition-all duration-150',
               active
-                ? 'border-border-strong bg-[linear-gradient(135deg,rgba(26,24,20,0.96),rgba(18,16,13,0.98))] text-background shadow-[0_14px_24px_rgba(18,15,12,0.14)]'
+                ? 'border-border-strong bg-[linear-gradient(135deg,rgba(26,24,20,0.96),rgba(18,16,13,0.98))] text-[color:var(--color-background)] shadow-[0_14px_24px_rgba(18,15,12,0.14)]'
                 : 'border-transparent text-text-muted hover:border-border hover:bg-white/72 hover:text-text-primary',
             ].join(' ')}
           >

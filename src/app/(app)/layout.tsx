@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
+import {
+  summarizeActiveContext,
+  type ActiveContextSummary,
+} from '@/lib/profile/active-context'
 import { redirect } from 'next/navigation'
-import Sidebar from '@/components/ui/sidebar'
-import AppShell from '@/components/ui/app-shell'
-import BottomNav from '@/components/ui/bottom-nav'
 import AppShellProvider from './shell-provider'
 
 export default async function AppLayout({
@@ -26,24 +27,26 @@ export default async function AppLayout({
 
   // Fetch tier from profiles table
   let userTier = 'trial'
+  let activeContextSummary: ActiveContextSummary | null = null
   try {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_tier')
+      .select('subscription_tier, active_context')
       .eq('user_id', user.id)
       .single()
     if (profile?.subscription_tier) {
       userTier = profile.subscription_tier
     }
+    activeContextSummary = summarizeActiveContext(profile?.active_context)
   } catch {
     // Profile may not exist yet — default to trial
   }
 
   return (
     <AppShellProvider
-      pathname="placeholder"
       userName={userName}
       userTier={userTier}
+      activeContextSummary={activeContextSummary}
     >
       {children}
     </AppShellProvider>

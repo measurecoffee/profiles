@@ -1,6 +1,8 @@
 import { COFFEE_AGENT_SYSTEM_PROMPT } from '@/lib/agent/system-prompt'
 import { getTier } from '@/lib/agent/tiers'
 import type { CalculatorContextPayload } from '@/lib/calculator/context'
+import { formatActiveContextForPrompt } from '@/lib/profile/active-context'
+import { COFFEE_AGENT_NAME } from '@/lib/agent/brand'
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -55,8 +57,10 @@ export async function chatWithAgent(request: ChatRequest): Promise<ChatResponse>
       }
     }
 
-    if (activeContext?.current_focus) {
-      systemPrompt += `\nCurrent focus: ${activeContext.current_focus}\n`
+    const activeContextPrompt = formatActiveContextForPrompt(activeContext)
+    if (activeContextPrompt) {
+      systemPrompt += `\n## USER'S ACTIVE SESSION CONTEXT\n`
+      systemPrompt += activeContextPrompt + '\n'
     }
 
     // Inject existing deep context so agent knows what's already stored
@@ -102,7 +106,7 @@ export async function chatWithAgent(request: ChatRequest): Promise<ChatResponse>
       'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'https://measure.coffee',
-      'X-Title': 'measure.coffee Agent',
+      'X-Title': COFFEE_AGENT_NAME,
     },
     body: JSON.stringify({
       model: tierConfig.model,

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Coffee } from 'lucide-react'
+import { COFFEE_AGENT_NAME } from '@/lib/agent/brand'
+import { TIERS } from '@/lib/agent/tiers'
 
 type Step = 'details' | 'verify-phone' | 'choose-plan'
 
@@ -252,7 +254,7 @@ export default function SignupPage() {
               measure.coffee
             </h1>
           </div>
-          <p className="text-text-secondary mb-4">Choose your plan</p>
+          <p className="text-text-secondary mb-4">Choose your {COFFEE_AGENT_NAME} plan</p>
           <StepIndicator current={step} />
 
           {error && (
@@ -269,8 +271,12 @@ export default function SignupPage() {
                 <h2 className="text-lg font-semibold text-text-primary">Free Trial</h2>
                 <span className="text-text-secondary font-medium">$0</span>
               </div>
-              <p className="text-sm text-text-secondary">
-                7 days free · 15K weekly tokens · Basic coffee Q&A and equipment lookup
+              <p className="text-sm text-text-secondary font-medium">
+                7 days free · {TIERS.trial.weeklyTokenBudget.toLocaleString()} tokens/week ·{' '}
+                {TIERS.trial.maxContextTokens.toLocaleString()} context
+              </p>
+              <p className="mt-1 text-xs text-text-muted">
+                Best for trying Measure. Upgrade when your trial ends.
               </p>
             </button>
 
@@ -283,8 +289,12 @@ export default function SignupPage() {
                 <h2 className="text-lg font-semibold text-text-primary">Basic</h2>
                 <span className="text-text-primary font-bold">$5/mo</span>
               </div>
-              <p className="text-sm text-text-secondary">
-                150K weekly tokens · Equipment guidance · Maintenance schedules · Full profile memory
+              <p className="text-sm text-text-secondary font-medium">
+                {TIERS.tier1.weeklyTokenBudget.toLocaleString()} tokens/week ·{' '}
+                {TIERS.tier1.maxContextTokens.toLocaleString()} context · Full memory
+              </p>
+              <p className="mt-1 text-xs text-text-muted">
+                Best for home baristas and solo pros. Upgrade when you need higher volume or cafe ops guidance.
               </p>
             </button>
 
@@ -293,15 +303,19 @@ export default function SignupPage() {
               onClick={() => handleChoosePlan('tier2')}
               className="relative w-full text-left p-5 border-2 border-copper rounded-xl bg-espresso hover:bg-primary-hover transition-colors"
             >
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full bg-accent text-cream">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full bg-accent text-[color:var(--color-cream)]">
                 Recommended
               </span>
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold text-cream">Pro</h2>
-                <span className="text-gold font-bold">$19/mo</span>
+                <h2 className="text-lg font-semibold text-[color:var(--color-cream)]">Pro</h2>
+                <span className="font-bold text-[color:var(--color-gold)]">$19/mo</span>
               </div>
-              <p className="text-sm text-text-secondary">
-                500K weekly tokens · Priority model · Advanced diagnostics · Business consulting
+              <p className="text-sm font-medium text-[color:var(--color-latte)]">
+                {TIERS.tier2.weeklyTokenBudget.toLocaleString()} tokens/week ·{' '}
+                {TIERS.tier2.maxContextTokens.toLocaleString()} context · Priority model
+              </p>
+              <p className="mt-1 text-xs text-[color:rgba(244,240,228,0.74)]">
+                Best for cafe teams and power users who need high-volume support.
               </p>
             </button>
           </div>

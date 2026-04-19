@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/profile?upgraded=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/profile`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/profile?upgraded=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/profile`,
       metadata: {
         user_id: user.id,
         plan_id: planId,

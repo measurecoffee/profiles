@@ -1,8 +1,11 @@
 'use client'
 
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { TIERS } from '@/lib/agent/tiers'
-import { Suspense } from 'react'
+import { summarizeActiveContext } from '@/lib/profile/active-context'
+import { Suspense, useState } from 'react'
+import { COFFEE_AGENT_NAME } from '@/lib/agent/brand'
 
 interface Identity {
   name: string | null
@@ -41,7 +44,8 @@ const TIER_BADGE_STYLES: Record<string, string> = {
   trial: 'bg-latte text-mocha border border-mocha/20',
   expired_trial: 'bg-red-50 text-destructive border border-destructive/20',
   tier1: 'bg-cream text-copper border border-copper/30',
-  tier2: 'bg-espresso text-gold border border-gold/30 animate-subtle-glow',
+  tier2:
+    'bg-espresso text-[color:var(--color-gold)] border border-[color:rgba(212,154,79,0.3)] animate-subtle-glow',
 }
 
 /* ── Completeness heuristic ──────────────────────────────────────── */
@@ -110,9 +114,15 @@ function ProfileInner({ profile, email }: ProfileContentProps) {
 
   const trialStarted = profile?.trial_started_at ? new Date(profile.trial_started_at) : null
   const trialEndsAt = trialStarted ? new Date(trialStarted.getTime() + 7 * 24 * 60 * 60 * 1000) : null
-  const daysLeft = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null
+  const [renderedAt] = useState(() => Date.now())
+  const daysLeft = trialEndsAt
+    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - renderedAt) / (1000 * 60 * 60 * 24)))
+    : null
 
   const completeness = calcCompleteness(profile)
+  const activeContextSummary = summarizeActiveContext(profile?.active_context)
+  const deepContextKeys = profile?.deep_context ? Object.keys(profile.deep_context) : []
+  const activeIssuesCount = activeContextSummary.activeIssues.length
 
   const handleCheckout = (planId: string) => {
     fetch('/api/stripe/checkout', {
@@ -159,8 +169,8 @@ function ProfileInner({ profile, email }: ProfileContentProps) {
             </h2>
             <p className="text-sm text-text-secondary mt-1">
               {completeness >= 100
-                ? 'Your profile is complete! Your agent has everything it needs.'
-                : 'Fill in more details so your coffee agent can personalize every conversation.'}
+                ? `Your profile is complete. ${COFFEE_AGENT_NAME} has everything needed to personalize advice.`
+                : `Fill in more details so ${COFFEE_AGENT_NAME} can personalize every conversation.`}
             </p>
             {completeness < 100 && (
               <p className="font-mono text-xs uppercase tracking-wider text-text-muted mt-2">
@@ -190,7 +200,7 @@ function ProfileInner({ profile, email }: ProfileContentProps) {
 
         {isExpired && (
           <div className="bg-red-50 text-destructive text-sm p-3 rounded-lg mb-3">
-            Your free trial has expired. Upgrade to continue using the coffee agent.
+            Your free trial has ended. Upgrade to keep chatting with {COFFEE_AGENT_NAME}.
           </div>
         )}
 
@@ -203,6 +213,17 @@ function ProfileInner({ profile, email }: ProfileContentProps) {
           <span className="font-mono text-xs uppercase tracking-wider text-text-muted">
             {tierConfig.maxContextTokens.toLocaleString()} max context
           </span>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 mb-4">
+          <div className="rounded-lg border border-border bg-background px-3 py-2">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Best for</p>
+            <p className="mt-1 text-sm text-text-primary">{tierConfig.bestFor}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-background px-3 py-2">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Upgrade trigger</p>
+            <p className="mt-1 text-sm text-text-primary">{tierConfig.upgradeTrigger}</p>
+          </div>
         </div>
 
         {/* Plan features */}
@@ -228,14 +249,14 @@ function ProfileInner({ profile, email }: ProfileContentProps) {
                 onClick={() => handleCheckout('tier1')}
                 className="flex-1 py-3 px-6 bg-cream text-copper rounded-full font-medium border border-copper/30 hover:bg-latte transition-colors text-center"
               >
-                Upgrade to Basic — $5/mo
+                Upgrade to Basic ($5/mo)
               </button>
             )}
             <button
               onClick={() => handleCheckout('tier2')}
-              className="flex-1 py-3 px-6 bg-espresso text-gold rounded-full font-medium border border-gold/30 hover:bg-primary-hover transition-colors text-center"
+              className="flex-1 py-3 px-6 bg-espresso text-[color:var(--color-gold)] rounded-full font-medium border border-[color:rgba(212,154,79,0.3)] hover:bg-primary-hover transition-colors text-center"
             >
-              Upgrade to Pro — $19/mo
+              Upgrade to Pro ($19/mo)
             </button>
           </div>
         )}
@@ -243,121 +264,74 @@ function ProfileInner({ profile, email }: ProfileContentProps) {
 
       {/* ── CTA: Chat with Agent ─────────────────────────────── */}
       {tierConfig.canChat && (
-        <a
+        <Link
           href="/chat"
           className="flex items-center justify-center gap-2 mb-8 py-3.5 px-6 bg-accent text-white rounded-full font-medium hover:bg-accent-hover transition-colors shadow-md hover:shadow-lg"
         >
           <span>☕</span>
-          <span>Continue Your Coffee Journey</span>
+          <span>Chat with {COFFEE_AGENT_NAME}</span>
           <span aria-hidden="true">→</span>
-        </a>
+        </Link>
       )}
 
-      {/* ── L1: Your Coffee Identity ─────────────────────────── */}
+      {/* ── Memory summary + advanced config entry point ─────── */}
       <section className="mb-8 bg-surface rounded-xl border border-border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-[family-name:var(--font-display)] text-text-primary">
-            Your Coffee Identity
-          </h2>
-          <span className="font-mono text-xs text-text-muted">(L1 · always loaded)</span>
-        </div>
-        <p className="text-sm text-text-secondary mb-4">
-          ~150 tokens per session. Your agent sees this every time.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <span className="font-mono text-xs uppercase tracking-wider text-text-muted">Name</span>
-            <p className="text-text-primary">{profile?.identity?.name || 'Not set'}</p>
-          </div>
-          <div>
-            <span className="font-mono text-xs uppercase tracking-wider text-text-muted">Handle</span>
-            <p className="text-text-primary">{profile?.identity?.handle || 'Not set'}</p>
-          </div>
-          <div>
-            <span className="font-mono text-xs uppercase tracking-wider text-text-muted">Timezone</span>
-            <p className="text-text-primary">{profile?.identity?.timezone || 'Not set'}</p>
-          </div>
-          <div>
-            <span className="font-mono text-xs uppercase tracking-wider text-text-muted">Roles</span>
-            <p className="text-text-primary">
-              {profile?.identity?.roles?.length ? profile.identity.roles.join(', ') : 'None'}
+            <h2 className="text-xl font-[family-name:var(--font-display)] text-text-primary">
+              Memory Profile
+            </h2>
+            <p className="mt-1 text-sm text-text-secondary">
+              Advanced profile configuration now lives in a dedicated settings surface.
             </p>
           </div>
-          <div>
-            <span className="font-mono text-xs uppercase tracking-wider text-text-muted">Communication style</span>
-            <p className="text-text-primary">{profile?.identity?.communication_style || 'Not set'}</p>
-          </div>
-          <div>
-            <span className="font-mono text-xs uppercase tracking-wider text-text-muted">Active projects</span>
-            <p className="text-text-primary">
-              {profile?.identity?.active_projects?.length ? profile.identity.active_projects.join(', ') : 'None'}
-            </p>
-          </div>
+          <Link
+            href="/settings/advanced-profile"
+            className="inline-flex min-h-[44px] items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-muted transition-colors"
+          >
+            Open Advanced Settings
+          </Link>
         </div>
-      </section>
 
-      {/* ── L2: What You're Working On ──────────────────────── */}
-      <section className="mb-8 bg-surface rounded-xl border border-border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-[family-name:var(--font-display)] text-text-primary">
-            What You&apos;re Working On
-          </h2>
-          <span className="font-mono text-xs text-text-muted">(L2 · per-session)</span>
-        </div>
-        <p className="text-sm text-text-secondary mb-4">
-          ~300 tokens. Auto-generated from your recent activity.
-          {!profile?.advanced_config && ' Enable advanced config for manual override.'}
-        </p>
-        <div className="space-y-3">
-          <div>
-            <span className="font-mono text-xs uppercase tracking-wider text-text-muted">Current focus</span>
-            <p className="text-text-primary">
-              {String((profile?.active_context as Record<string, unknown>)?.current_focus ?? 'No active focus')}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-border bg-background px-4 py-3">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
+              Current focus
+            </p>
+            <p className="mt-1 text-sm text-text-primary">
+              {activeContextSummary.currentFocus || 'No active focus yet.'}
             </p>
           </div>
-          {profile?.active_context && Object.entries(profile.active_context)
-            .filter(([k]) => k !== 'current_focus')
-            .map(([key, val]) => (
-              <div key={key}>
-                <span className="font-mono text-xs uppercase tracking-wider text-text-muted">
-                  {key.replace(/_/g, ' ')}
-                </span>
-                <p className="text-text-primary">{String(val)}</p>
-              </div>
-            ))
-          }
-        </div>
-      </section>
 
-      {/* ── L3: Your Coffee Knowledge ───────────────────────── */}
-      <section className="mb-8 bg-surface rounded-xl border border-border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-[family-name:var(--font-display)] text-text-primary">
-            Your Coffee Knowledge
-          </h2>
-          <span className="font-mono text-xs text-text-muted">(L3 · on-demand)</span>
+          <div className="rounded-lg border border-border bg-background px-4 py-3">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
+              Session hint
+            </p>
+            <p className="mt-1 text-sm text-text-primary">
+              {activeContextSummary.sessionHint || 'No hint captured yet.'}
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-border bg-background px-4 py-3">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
+              Active issues
+            </p>
+            <p className="mt-1 text-sm text-text-primary">{activeIssuesCount}</p>
+          </div>
+
+          <div className="rounded-lg border border-border bg-background px-4 py-3">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
+              Deep context domains
+            </p>
+            <p className="mt-1 text-sm text-text-primary">{deepContextKeys.length}</p>
+          </div>
         </div>
-        <p className="text-sm text-text-secondary mb-4">
-          Fetched by agents only when needed. Unlimited depth.
-        </p>
-        <div className="space-y-2">
-          {profile?.deep_context && Object.entries(profile.deep_context).length > 0 ? (
-            Object.entries(profile.deep_context).map(([key, value]) => (
-              <div key={key} className="flex justify-between items-center">
-                <span className="font-mono text-xs uppercase tracking-wider text-text-muted">
-                  {key.replace(/_/g, ' ')}
-                </span>
-                <span className="text-sm text-text-secondary">
-                  {value && typeof value === 'object' && Object.keys(value).length > 0
-                    ? `${Object.keys(value).length} entries`
-                    : 'Empty'}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-text-muted">No knowledge entries yet. Start chatting to build your profile!</p>
-          )}
-        </div>
+
+        {!profile?.advanced_config && (
+          <p className="mt-4 text-xs text-text-muted">
+            Manual override is disabled. Enable advanced config in Advanced Profile Settings.
+          </p>
+        )}
       </section>
 
       {/* ── Phone verification ────────────────────────────────── */}

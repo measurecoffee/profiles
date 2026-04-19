@@ -4,18 +4,20 @@ import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/ui/sidebar'
 import AppShell from '@/components/ui/app-shell'
 import BottomNav from '@/components/ui/bottom-nav'
+import type { ActiveContextSummary } from '@/lib/profile/active-context'
 
 interface AppShellProviderProps {
   children: React.ReactNode
   userName: string
   userTier: string
-  pathname: string // not used — we read from client hook
+  activeContextSummary: ActiveContextSummary | null
 }
 
 export default function AppShellProvider({
   children,
   userName,
   userTier,
+  activeContextSummary,
 }: AppShellProviderProps) {
   const pathname = usePathname()
 
@@ -27,7 +29,12 @@ export default function AppShellProvider({
       >
         Skip to content
       </a>
-      <Sidebar pathname={pathname} userName={userName} userTier={userTier} />
+      <Sidebar
+        pathname={pathname}
+        userName={userName}
+        userTier={userTier}
+        activeContextSummary={activeContextSummary}
+      />
       <AppShell>
         <div id="main-content" className="page-enter">
           {children}

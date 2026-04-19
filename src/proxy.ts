@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -33,9 +33,16 @@ export async function middleware(request: NextRequest) {
   // Protect routes that require auth
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
   const isAccountRoute = request.nextUrl.pathname.startsWith('/account')
-  const isAppRoute = request.nextUrl.pathname.startsWith('/chat') ||
-    request.nextUrl.pathname.startsWith('/calculator') ||
-    request.nextUrl.pathname.startsWith('/profile')
+  const appRoutePrefixes = [
+    '/chat',
+    '/dashboard',
+    '/calculator',
+    '/profile',
+    '/settings',
+  ]
+  const isAppRoute = appRoutePrefixes.some((prefix) =>
+    request.nextUrl.pathname.startsWith(prefix)
+  )
 
   if (!session && (isAccountRoute || isAppRoute)) {
     const url = request.nextUrl.clone()
@@ -46,7 +53,7 @@ export async function middleware(request: NextRequest) {
 
   if (session && isAuthRoute && !request.nextUrl.pathname.startsWith('/auth/callback') && !request.nextUrl.pathname.startsWith('/auth/logout')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/account/profile'
+    url.pathname = '/profile'
     return NextResponse.redirect(url)
   }
 

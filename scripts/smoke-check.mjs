@@ -16,7 +16,6 @@ async function request(path, init = {}) {
 
   if (vercelAutomationBypassSecret) {
     headers.set('x-vercel-protection-bypass', vercelAutomationBypassSecret)
-    headers.set('x-vercel-set-bypass-cookie', 'true')
   }
 
   const response = await fetch(url, {
@@ -60,14 +59,22 @@ async function runCheck(name, fn) {
   console.log('ok')
 }
 
-await runCheck('landing page responds', async () => {
-  const result = await request('/')
+await runCheck('landing page responds or redirects to canonical domain', async () => {
+  const result = await request('/', { redirect: 'manual' })
+  const status = result.response.status
   assert(
-    result.response.status === 200,
-    result.response.status === 401
-      ? 'expected 200, received 401. This preview is protected by Vercel Deployment Protection; set VERCEL_AUTOMATION_BYPASS_SECRET for CI smoke checks.'
-      : `expected 200, received ${result.response.status}`
+    status === 200 || status === 301 || status === 302 || status === 307 || status === 308,
+    status === 401
+      ? 'expected 2xx/3xx, received 401. This preview is protected by Vercel Deployment Protection; set VERCEL_AUTOMATION_BYPASS_SECRET for CI smoke checks.'
+      : `expected 2xx/3xx, received ${status}`
   )
+  if (status >= 300 && status < 400) {
+    const location = result.response.headers.get('location') ?? ''
+    assert(
+      new URL(location).hostname === new URL(normalizedBaseUrl).hostname || location.includes('measure.coffee'),
+      `expected redirect to same host or canonical domain, received "${location}"`
+    )
+  }
 })
 
 await runCheck('login page responds', async () => {

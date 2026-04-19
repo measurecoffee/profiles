@@ -20,6 +20,8 @@ Set the same `DEPLOYMENT_SMOKE_TEST_KEY` value in:
 
 The deep health endpoint requires that key through the `x-healthcheck-key` header. Without it, preview and production smoke checks can only run in shallow mode.
 
+If Vercel Deployment Protection is enabled for preview deployments, also copy the Vercel-generated `VERCEL_AUTOMATION_BYPASS_SECRET` into GitHub Actions repository secrets. The smoke script sends it through the documented `x-vercel-protection-bypass` header so CI can reach protected preview URLs.
+
 ## Suggested Release Flow
 
 1. Open a PR with the preview URL in the required PR template.

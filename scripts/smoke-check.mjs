@@ -1,6 +1,7 @@
 const baseUrl = process.env.BASE_URL?.trim()
 const deepHealth = /^(1|true|yes)$/i.test(process.env.DEEP_HEALTH ?? '')
 const healthcheckKey = process.env.HEALTHCHECK_KEY?.trim()
+const vercelAutomationBypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim()
 
 if (!baseUrl) {
   console.error('BASE_URL is required')
@@ -11,7 +12,17 @@ const normalizedBaseUrl = new URL(baseUrl).toString().replace(/\/$/, '')
 
 async function request(path, init = {}) {
   const url = new URL(path, `${normalizedBaseUrl}/`)
-  const response = await fetch(url, init)
+  const headers = new Headers(init.headers ?? {})
+
+  if (vercelAutomationBypassSecret) {
+    headers.set('x-vercel-protection-bypass', vercelAutomationBypassSecret)
+    headers.set('x-vercel-set-bypass-cookie', 'true')
+  }
+
+  const response = await fetch(url, {
+    ...init,
+    headers,
+  })
 
   let bodyText = ''
   try {
@@ -51,7 +62,12 @@ async function runCheck(name, fn) {
 
 await runCheck('landing page responds', async () => {
   const result = await request('/')
-  assert(result.response.status === 200, `expected 200, received ${result.response.status}`)
+  assert(
+    result.response.status === 200,
+    result.response.status === 401
+      ? 'expected 200, received 401. This preview is protected by Vercel Deployment Protection; set VERCEL_AUTOMATION_BYPASS_SECRET for CI smoke checks.'
+      : `expected 200, received ${result.response.status}`
+  )
 })
 
 await runCheck('login page responds', async () => {

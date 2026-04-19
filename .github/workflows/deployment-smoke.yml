@@ -51,3 +51,4 @@ jobs:
           BASE_URL: ${{ env.BASE_URL }}
           DEEP_HEALTH: ${{ env.DEEP_HEALTH }}
           HEALTHCHECK_KEY: ${{ secrets.DEPLOYMENT_SMOKE_TEST_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}

@@ -32,10 +32,10 @@ export default function SidebarItem({
   }
 
   const baseClasses = [
-    'flex items-center gap-3 min-h-[44px] px-3 rounded-md transition-colors duration-150',
+    'group flex items-center gap-3 min-h-[48px] rounded-[18px] border px-3.5 transition-all duration-150',
     active
-      ? 'bg-latte text-accent'
-      : 'text-text-secondary hover:bg-surface-muted',
+      ? 'border-border-strong bg-[linear-gradient(135deg,rgba(26,24,20,0.96),rgba(18,16,13,0.98))] text-white shadow-[0_18px_32px_rgba(18,15,12,0.14)]'
+      : 'border-transparent text-text-secondary hover:border-border hover:bg-white/72 hover:text-text-primary',
   ].join(' ')
 
   if (collapsed) {
@@ -43,7 +43,7 @@ export default function SidebarItem({
       <Link
         href={hasChildren ? '#' : href}
         onClick={handleClick}
-        className={baseClasses + ' justify-center'}
+        className={baseClasses + ' justify-center px-0'}
         title={label}
         aria-label={label}
       >
@@ -60,7 +60,7 @@ export default function SidebarItem({
         className={baseClasses}
       >
         <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-        <span className="text-sm font-medium truncate">{label}</span>
+        <span className="truncate text-sm font-medium tracking-[-0.02em]">{label}</span>
       </Link>
 
       {hasChildren && (

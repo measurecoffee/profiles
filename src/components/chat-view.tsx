@@ -7,6 +7,8 @@ import MessageAvatar from '@/components/chat/message-avatar'
 import TypingIndicator from '@/components/chat/typing-indicator'
 import EmptyState from '@/components/chat/empty-state'
 import MarkdownRenderer from '@/components/chat/markdown-renderer'
+import { COFFEE_AGENT_NAME } from '@/lib/agent/brand'
+import { TIERS } from '@/lib/agent/tiers'
 import {
   clearQueuedCalculatorContext,
   readQueuedCalculatorContext,
@@ -30,6 +32,7 @@ export interface InitialChatMessage {
 interface ChatViewProps {
   initialThreadId?: string | null
   initialMessages?: InitialChatMessage[]
+  shouldBootstrapOnboarding?: boolean
 }
 
 interface ChatResponse {
@@ -70,6 +73,7 @@ function mapInitialMessages(initialMessages: InitialChatMessage[]): Message[] {
 export default function ChatView({
   initialThreadId = null,
   initialMessages = [],
+  shouldBootstrapOnboarding = false,
 }: ChatViewProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -81,12 +85,12 @@ export default function ChatView({
   const [usage, setUsage] = useState<ChatResponse['usage']>()
   const [tier, setTier] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
-  const [initialized, setInitialized] = useState(false)
   const [pendingCalculatorContext, setPendingCalculatorContext] = useState<CalculatorContextPayload | null>(null)
   const [nextMessageCalculatorContext, setNextMessageCalculatorContext] = useState<CalculatorContextPayload | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const contextInitializedRef = useRef(false)
+  const onboardingInitializedRef = useRef(false)
 
   async function sendMessage(text: string) {
     const trimmed = text.trim()
@@ -158,14 +162,14 @@ export default function ChatView({
   }, [messages, loading])
 
   useEffect(() => {
-    if (initialized) return
-    setInitialized(true)
-    if (!fromCalculator && messages.length === 0) {
-      void sendMessage(ONBOARDING_STARTER_MESSAGE)
-    }
+    if (onboardingInitializedRef.current) return
+    if (!shouldBootstrapOnboarding || fromCalculator || messages.length > 0) return
+
+    onboardingInitializedRef.current = true
+    void sendMessage(ONBOARDING_STARTER_MESSAGE)
     // sendMessage intentionally omitted to avoid reruns from identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialized, fromCalculator, messages.length])
+  }, [fromCalculator, messages.length, shouldBootstrapOnboarding])
 
   useEffect(() => {
     if (contextInitializedRef.current) return
@@ -205,121 +209,146 @@ export default function ChatView({
   }
 
   const isEmpty = messages.length === 0 && !loading
+  const tierLabel = tier ? TIERS[tier as keyof typeof TIERS]?.name || tier : ''
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[calc(100vh)] -m-4 md:-m-6 lg:-m-8">
-      <div className="border-b border-border bg-surface px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <Coffee className="h-5 w-5 text-accent" aria-hidden="true" />
-          <div>
-            <h1 className="text-sm font-semibold text-text-primary font-[family-name:var(--font-display)]">
-              measure.coffee
-            </h1>
-            <p className="text-xs text-text-muted-high">
-              {tier && `${tier}`}
-              {usage && ` · ${usage.remainingBudget?.toLocaleString()} tokens left`}
-            </p>
+    <div className="flex min-h-[calc(100dvh-8rem)] flex-col gap-4 lg:min-h-[calc(100dvh-6rem)]">
+      <div className="tech-card tech-card-grid shrink-0 px-4 py-5 sm:px-6">
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] border border-border-strong bg-[linear-gradient(135deg,rgba(26,24,20,0.96),rgba(18,16,13,0.98))] shadow-[0_18px_32px_rgba(18,15,12,0.14)]">
+              <Coffee className="h-5 w-5 text-gold" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="tech-label">Brew intelligence session</p>
+              <h1 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-text-primary font-[family-name:var(--font-display)]">
+                {COFFEE_AGENT_NAME}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
+                Technical coffee guidance with memory of your setup, recent calculators, and the
+                last thread context.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="tech-chip">measure/core</span>
+            {tierLabel && <span className="tech-chip">{tierLabel}</span>}
+            {usage && (
+              <span className="tech-chip-strong">
+                {usage.remainingBudget?.toLocaleString()} tokens left
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1 bg-background">
-        {pendingCalculatorContext && (
-          <div className="mb-4 rounded-lg border border-border bg-surface p-3">
-            <p className="text-xs uppercase tracking-wide text-text-muted">Calculator Context Ready</p>
-            <p className="mt-1 text-sm text-text-primary">{pendingCalculatorContext.summary}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {!nextMessageCalculatorContext && (
+      <div
+        ref={scrollRef}
+        className={[
+          'tech-card flex-1 overflow-y-auto p-4 sm:p-6',
+          isEmpty ? 'flex items-center justify-center' : '',
+        ].join(' ')}
+      >
+        <div className="space-y-3">
+          {pendingCalculatorContext && (
+            <div className="tech-card-muted mb-4 p-4">
+              <p className="tech-label">Calculator context queued</p>
+              <p className="mt-2 text-sm text-text-primary">{pendingCalculatorContext.summary}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {!nextMessageCalculatorContext && (
+                  <button
+                    onClick={handleUseCalculatorContext}
+                    className="tech-button-primary px-4 text-sm"
+                  >
+                    Use in next brew advice
+                  </button>
+                )}
                 <button
-                  onClick={handleUseCalculatorContext}
-                  className="px-3 py-1.5 rounded-full bg-accent text-cream text-xs font-medium hover:bg-accent-hover transition-colors"
+                  onClick={handleClearCalculatorContext}
+                  className="tech-button-secondary px-4 text-sm"
                 >
-                  Use in Next Brew Advice
+                  Clear
                 </button>
-              )}
-              <button
-                onClick={handleClearCalculatorContext}
-                className="px-3 py-1.5 rounded-full border border-border text-text-primary text-xs font-medium hover:bg-surface-muted transition-colors"
-              >
-                Clear
-              </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {isEmpty && <EmptyState onSuggestionClick={handleSuggestionClick} />}
+          {isEmpty && <EmptyState onSuggestionClick={handleSuggestionClick} />}
 
-        {messages.map((message, index) => {
-          const showTimestamp = shouldShowTimestamp(messages, index)
-          const isUser = message.role === 'user'
+          {messages.map((message, index) => {
+            const showTimestamp = shouldShowTimestamp(messages, index)
+            const isUser = message.role === 'user'
 
-          return (
-            <div
-              key={`${message.role}-${message.timestamp.getTime()}-${index}`}
-              className={`message-enter flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2`}
-            >
-              {!isUser && <MessageAvatar role="assistant" />}
+            return (
+              <div
+                key={`${message.role}-${message.timestamp.getTime()}-${index}`}
+                className={`message-enter flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-3`}
+              >
+                {!isUser && <MessageAvatar role="assistant" />}
 
-              <div className={`max-w-[80%] ${isUser ? 'items-end' : 'items-start'}`}>
-                <div
-                  className={[
-                    'rounded-2xl px-4 py-2.5',
-                    isUser
-                      ? 'bg-accent text-cream'
-                      : 'bg-surface border border-border text-text-primary',
-                  ].join(' ')}
-                >
-                  {isUser ? (
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  ) : (
-                    <MarkdownRenderer content={message.content} />
+                <div className={`max-w-[82%] ${isUser ? 'items-end' : 'items-start'}`}>
+                  <div
+                    className={[
+                      'rounded-[22px] px-4 py-3',
+                      isUser
+                        ? 'tech-card-strong text-background'
+                        : 'tech-card-muted text-text-primary',
+                    ].join(' ')}
+                  >
+                    {isUser ? (
+                      <p className="text-sm whitespace-pre-wrap leading-6">{message.content}</p>
+                    ) : (
+                      <MarkdownRenderer content={message.content} />
+                    )}
+                  </div>
+                  {showTimestamp && (
+                    <p className="mt-1 px-1 text-[10px] font-[family-name:var(--font-mono)] uppercase tracking-[0.14em] text-text-muted-high">
+                      {formatTime(message.timestamp)}
+                    </p>
                   )}
                 </div>
-                {showTimestamp && (
-                  <p className="text-[10px] font-[family-name:var(--font-mono)] text-text-muted-high mt-0.5 px-1">
-                    {formatTime(message.timestamp)}
-                  </p>
-                )}
+
+                {isUser && <MessageAvatar role="user" />}
               </div>
+            )
+          })}
 
-              {isUser && <MessageAvatar role="user" />}
+          {loading && <TypingIndicator />}
+
+          {error && (
+            <div className="text-center">
+              <p className="inline-block rounded-[16px] border border-destructive/20 bg-[rgba(138,69,40,0.08)] px-4 py-2 text-sm text-destructive">
+                {error}
+              </p>
             </div>
-          )
-        })}
-
-        {loading && <TypingIndicator />}
-
-        {error && (
-          <div className="text-center">
-            <p className="text-sm text-destructive bg-red-50 rounded-lg px-4 py-2 inline-block">{error}</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      <div className="border-t border-border bg-surface p-3 shrink-0">
+      <div className="tech-card shrink-0 p-3 sm:p-4">
         {nextMessageCalculatorContext && (
-          <div className="max-w-3xl mx-auto mb-2 px-1">
-            <p className="text-xs text-text-secondary">
-              Next message will include structured context from your{' '}
-              <span className="font-medium text-text-primary">{nextMessageCalculatorContext.title}</span>{' '}
-              calculator result.
+          <div className="mb-3 px-1">
+            <p className="text-xs leading-5 text-text-secondary">
+              Next message will include structured context from{' '}
+              <span className="font-medium text-text-primary">{nextMessageCalculatorContext.title}</span>.
             </p>
           </div>
         )}
-        <form onSubmit={handleSubmit} className="flex gap-2 max-w-3xl mx-auto">
+        <form onSubmit={handleSubmit} className="flex gap-3">
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            placeholder="Ask about coffee..."
+            placeholder={`Ask ${COFFEE_AGENT_NAME} about coffee...`}
             disabled={loading}
-            className="flex-1 px-4 py-2.5 border border-border rounded-full bg-background text-text-primary focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+            className="tech-input flex-1"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="px-4 py-2.5 bg-accent text-cream rounded-full font-medium hover:bg-accent-hover disabled:opacity-50 transition-colors"
+            className="tech-button-primary h-12 w-12 shrink-0 px-0"
+            aria-label="Send message"
           >
             <Send className="h-4 w-4" />
           </button>

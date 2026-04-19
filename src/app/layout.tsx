@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Calistoga } from "next/font/google";
+import { JetBrains_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
 });
 
@@ -12,15 +12,14 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
-const calistoga = Calistoga({
-  weight: "400",
-  variable: "--font-calistoga",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "measure.coffee — Your coffee agent that never forgets",
-  description: "A coffee expert agent with persistent memory. Enter your equipment, chat naturally, and get personalized advice that remembers every session.",
+  title: "measure.coffee - Personalized coffee guidance",
+  description: "Measure Barista gives concrete brew, equipment, and cafe advice that remembers your setup.",
 };
 
 export default function RootLayout({
@@ -31,7 +30,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} ${calistoga.variable} h-full antialiased`}
+      className={`${manrope.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
